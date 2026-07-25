@@ -385,10 +385,10 @@ async function refreshDerivedActivityData(athleteId: string) {
   const routeStampEntries = buildRouteStampEntries({ activities, countries });
   const dashboardSummary = buildDashboardSummary({ activities, countries, routeStampEntries });
   const db = supabaseAdmin();
-  const { error: deleteError } = await db.from("route_stamp_country_summaries").delete().eq("athlete_id", athleteId);
+  const { error: deleteError } = await db.from("passport_country_summaries").delete().eq("athlete_id", athleteId);
   throwIfError(deleteError);
   if (routeStampEntries.length) {
-    const { error: summaryError } = await db.from("route_stamp_country_summaries").insert(routeStampEntries.map((entry) => ({
+    const { error: summaryError } = await db.from("passport_country_summaries").insert(routeStampEntries.map((entry) => ({
       athlete_id: athleteId,
       country_code: entry.country.code,
       first_visited_at: entry.firstVisitedAt,
@@ -438,7 +438,7 @@ async function readDashboardSummary(athleteId: string): Promise<DashboardSummary
 
 async function readRouteStampEntries(athleteId: string): Promise<RouteStampEntry[]> {
   const { data, error } = await supabaseAdmin()
-    .from("route_stamp_country_summaries")
+    .from("passport_country_summaries")
     .select("*")
     .eq("athlete_id", athleteId)
     .order("country_code", { ascending: true });

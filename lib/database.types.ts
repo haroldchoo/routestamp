@@ -7,7 +7,7 @@ type ActivityRow = { id: string; athlete_id: string; provider_activity_id: numbe
 type PrivacyRow = { athlete_id: string; settings: Json; updated_at: string };
 type InviteRow = { id: string; code_hash: string; status: string; expires_at: string | null; accepted_athlete_id: number | null; accepted_at: string | null; created_at: string; updated_at: string };
 type ProviderRateLimitRow = { provider: string; retry_after: string | null; updated_at: string };
-type RouteStampCountrySummaryRow = { athlete_id: string; country_code: string; first_visited_at: string; last_visited_at: string; activity_count: number; total_distance_meters: number; total_moving_time_seconds: number; total_elevation_gain_meters: number; sport_types: string[]; stamp_variant: string; updated_at: string };
+type PassportCountrySummaryRow = { athlete_id: string; country_code: string; first_visited_at: string; last_visited_at: string; activity_count: number; total_distance_meters: number; total_moving_time_seconds: number; total_elevation_gain_meters: number; sport_types: string[]; stamp_variant: string; updated_at: string };
 type AthleteActivityTotalsRow = { athlete_id: string; activity_count: number; unresolved_activity_count: number; total_distance_meters: number; total_moving_time_seconds: number; total_elevation_gain_meters: number; updated_at: string };
 
 export type Database = {
@@ -55,10 +55,10 @@ export type Database = {
         Update: Partial<ProviderRateLimitRow>;
         Relationships: [];
       };
-      route_stamp_country_summaries: {
-        Row: RouteStampCountrySummaryRow;
-        Insert: RouteStampCountrySummaryRow;
-        Update: Partial<RouteStampCountrySummaryRow>;
+      passport_country_summaries: {
+        Row: PassportCountrySummaryRow;
+        Insert: PassportCountrySummaryRow;
+        Update: Partial<PassportCountrySummaryRow>;
         Relationships: [];
       };
       athlete_activity_totals: {
