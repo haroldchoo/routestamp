@@ -286,7 +286,7 @@ button {
   color: white;
 }
 
-.passport-preview {
+.route-stamp-preview {
   align-self: end;
   min-height: 260px;
   border: 1px solid rgba(255, 255, 255, 0.34);
@@ -297,7 +297,7 @@ button {
   background: rgba(255, 255, 255, 0.14);
 }
 
-.passport-preview strong {
+.route-stamp-preview strong {
   font-size: 28px;
 }
 
@@ -416,6 +416,12 @@ button {
   font-weight: 800;
 }
 
+.sport-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
 .privacy-band {
   margin-top: 24px;
   padding: 24px;
@@ -462,7 +468,7 @@ select.chip {
   gap: 16px;
 }
 
-.passport-empty {
+.route-stamp-empty {
   margin-top: 18px;
 }
 

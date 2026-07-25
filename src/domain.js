@@ -34,7 +34,7 @@ const demoActivities = [
 ];
 
 const defaultPrivacySettings = {
-  publicPassportEnabled: false,
+  publicRouteStampEnabled: false,
   publicUrl: null,
   visibility: {
     displayName: false,
@@ -91,7 +91,7 @@ function createInitialState() {
   };
 }
 
-function buildPassportEntries(activities, countryList) {
+function buildRouteStampEntries(activities, countryList) {
   const countriesByCode = new Map(countryList.map((country) => [country.code, country]));
   const grouped = new Map();
 
@@ -121,24 +121,24 @@ function buildPassportEntries(activities, countryList) {
 }
 
 function buildDashboardSummary(state) {
-  const passportEntries = buildPassportEntries(state.activities, state.countries);
-  const continentCount = new Set(passportEntries.map((entry) => entry.country.continent)).size;
+  const routeStampEntries = buildRouteStampEntries(state.activities, state.countries);
+  const continentCount = new Set(routeStampEntries.map((entry) => entry.country.continent)).size;
   return {
-    passportEntries,
-    countriesVisited: passportEntries.length,
+    routeStampEntries,
+    countriesVisited: routeStampEntries.length,
     continentsVisited: continentCount,
     activityCount: state.activities.length,
     totalDistanceMeters: sum(state.activities, "distanceMeters"),
     totalMovingTimeSeconds: sum(state.activities, "movingTimeSeconds"),
     totalElevationGainMeters: sum(state.activities, "elevationGainMeters"),
-    recentCountries: [...passportEntries].sort((a, b) => new Date(b.lastVisitedAt) - new Date(a.lastVisitedAt)).slice(0, 4),
+    recentCountries: [...routeStampEntries].sort((a, b) => new Date(b.lastVisitedAt) - new Date(a.lastVisitedAt)).slice(0, 4),
     recentActivities: [...state.activities].sort((a, b) => new Date(b.startTime) - new Date(a.startTime)).slice(0, 6),
   };
 }
 
-function buildPublicPassport(state) {
+function buildPublicRouteStamp(state) {
   const settings = state.privacySettings;
-  if (!settings.publicPassportEnabled) return null;
+  if (!settings.publicRouteStampEnabled) return null;
 
   const summary = buildDashboardSummary(state);
   const visibility = settings.visibility;
@@ -156,7 +156,7 @@ function buildPublicPassport(state) {
   return {
     profile: publicProfile,
     summary: publicSummary,
-    countries: summary.passportEntries.map((entry) => {
+    countries: summary.routeStampEntries.map((entry) => {
       const projected = { country: entry.country };
       if (visibility.visitDates) {
         projected.firstVisitedAt = entry.firstVisitedAt;
@@ -168,7 +168,7 @@ function buildPublicPassport(state) {
       if (visibility.stamps) projected.stamp = entry.stamp;
       return projected;
     }),
-    map: visibility.publicMap ? { mode: "countries", countryCodes: summary.passportEntries.map((entry) => entry.country.code) } : null,
+    map: visibility.publicMap ? { mode: "countries", countryCodes: summary.routeStampEntries.map((entry) => entry.country.code) } : null,
     meta: {
       allowSearchEngineIndexing: settings.allowSearchEngineIndexing,
       updatedAt: settings.updatedAt,
@@ -183,7 +183,7 @@ function buildExport(state) {
       providerStatus: state.providerConnected ? state.user.providerStatus : "Disconnected",
       createdAt: state.user.createdAt,
     },
-    passport: buildPassportEntries(state.activities, state.countries),
+    routeStamp: buildRouteStampEntries(state.activities, state.countries),
     activitySummaries: state.activities,
     privacySettings: state.privacySettings,
     connectionMetadata: {

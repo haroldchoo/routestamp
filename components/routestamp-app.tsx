@@ -1,17 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIcon } from "@/components/activity-icon";
 import { WorldMap } from "@/components/world-map";
-import { buildDashboardSummary, buildPassportEntries, filterAndSortPassportEntries, formatDate, formatDistance, formatDuration, sportLabel } from "@/lib/domain";
-import type { PassportSort } from "@/lib/domain";
+import { buildDashboardSummary, buildRouteStampEntries, filterAndSortRouteStampEntries, formatDate, formatDistance, formatDuration, sportLabel } from "@/lib/domain";
+import type { RouteStampSort } from "@/lib/domain";
 import { createDemoState } from "@/lib/demo";
-import type { ActivityPage, ActivitySummary, AppState, Country, PassportEntry, PrivacySettings, SyncJob } from "@/lib/types";
+import type { ActivityPage, ActivitySummary, AppState, Country, RouteStampEntry, PrivacySettings, SyncJob } from "@/lib/types";
 
-type RouteName = "dashboard" | "passport" | "map" | "activities" | "privacy" | "public" | "settings";
+type RouteName = "dashboard" | "routestamp" | "map" | "activities" | "privacy" | "public" | "settings";
 
-const routes = new Set<RouteName>(["dashboard", "passport", "map", "activities", "privacy", "public", "settings"]);
+const routes = new Set<RouteName>(["dashboard", "routestamp", "map", "activities", "privacy", "public", "settings"]);
 
-export function PassportApp() {
+export function RouteStampApp() {
   const [state, setState] = useState<AppState>(() => createDemoState());
   const [route, setRoute] = useState<RouteName>("dashboard");
   const [busy, setBusy] = useState(false);
@@ -36,7 +37,7 @@ export function PassportApp() {
     readRoute();
     window.addEventListener("hashchange", readRoute);
     const loadTimer = window.setTimeout(() => void loadState(), 0);
-    const theme = window.localStorage.getItem("strava-passport-theme");
+    const theme = window.localStorage.getItem("routestamp-theme");
     document.documentElement.classList.toggle("dark", theme === "dark");
     const params = new URLSearchParams(window.location.search);
     const oauthError = params.get("oauth_error");
@@ -56,7 +57,7 @@ export function PassportApp() {
 
   const toggleTheme = () => {
     document.documentElement.classList.toggle("dark");
-    window.localStorage.setItem("strava-passport-theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
+    window.localStorage.setItem("routestamp-theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
   };
 
   useEffect(() => {
@@ -80,7 +81,7 @@ export function PassportApp() {
 
   const sync = async () => {
     if (!state.authenticated) {
-      const inviteCode = window.prompt("Enter your STRAVA Passport invite code");
+      const inviteCode = window.prompt("Enter your RouteStamp invite code");
       if (!inviteCode?.trim()) return;
       window.location.assign(`/api/auth/strava?invite=${encodeURIComponent(inviteCode.trim())}`);
       return;
@@ -145,15 +146,15 @@ export function PassportApp() {
       <a className="skip-link" href="#main">Skip to content</a>
       <div className="app-shell">
         <header className="topbar">
-          <a className="brand" href="#dashboard" aria-label="STRAVA Passport dashboard">
+          <a className="brand" href="#dashboard" aria-label="RouteStamp dashboard">
             <span className="brand-mark" aria-hidden="true">SP</span>
-            <span><strong>STRAVA Passport</strong><small>Private athletic travel journal</small></span>
+            <span><strong>RouteStamp</strong><small>Private athletic travel journal</small></span>
           </a>
           <Nav className="desktop-nav" route={route} />
           <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label="Toggle color theme">◐</button>
         </header>
 
-        <aside className="sidebar" aria-label="Passport summary">
+        <aside className="sidebar" aria-label="RouteStamp summary">
           <div className="profile-block">
             <div className="avatar" aria-hidden="true">{initials(state.user.displayName)}</div>
             <div><strong>{state.user.displayName}</strong><span>{summary.countriesVisited} countries unlocked</span></div>
@@ -172,7 +173,7 @@ export function PassportApp() {
 
         <main id="main" className="main" tabIndex={-1}>
           {route === "dashboard" && <Dashboard state={state} busy={busy} onSync={sync} />}
-          {route === "passport" && <Passport state={state} />}
+          {route === "routestamp" && <RouteStamp state={state} />}
           {route === "map" && <MapView state={state} />}
           {route === "activities" && <Activities state={state} />}
           {route === "privacy" && <Privacy state={state} onChange={updatePrivacy} />}
@@ -190,7 +191,7 @@ export function PassportApp() {
 
         <nav className="bottom-nav" aria-label="Primary mobile">
           <a href="#dashboard" aria-current={route === "dashboard" ? "page" : undefined}>Home</a>
-          <a href="#passport" aria-current={route === "passport" ? "page" : undefined}>Passport</a>
+          <a href="#routestamp" aria-current={route === "routestamp" ? "page" : undefined}>RouteStamp</a>
           <a href="#map" aria-current={route === "map" ? "page" : undefined}>Map</a>
           <a href="#activities" aria-current={route === "activities" ? "page" : undefined}>Log</a>
           <a href="#privacy" aria-current={route === "privacy" ? "page" : undefined}>Privacy</a>
@@ -211,7 +212,7 @@ function Dashboard({ state, busy, onSync }: { state: AppState; busy: boolean; on
         <div>
           <span className="eyebrow">{state.mode === "live" ? "Private Beta" : "Demo Mode"}</span>
           <h1>This shows where sport has taken you.</h1>
-          <p>A private-by-default passport for runs, rides, swims, hikes, and race weekends.</p>
+          <p>A private-by-default RouteStamp for runs, rides, swims, hikes, and race weekends.</p>
           <div className="action-row">
             {state.authenticated ? (
               <button className="button primary" type="button" disabled={busy || !state.providerConnected} onClick={onSync}>
@@ -224,15 +225,15 @@ function Dashboard({ state, busy, onSync }: { state: AppState; busy: boolean; on
           </div>
           <SyncProgress job={state.syncJob} />
         </div>
-        <div className="passport-preview" aria-hidden="true">
+        <div className="route-stamp-preview" aria-hidden="true">
           <span>Republic of Miles</span>
-          <strong>ATHLETE PASSPORT</strong>
+          <strong>ROUTESTAMP</strong>
           <div className="preview-stamps">
-            {(summary.passportEntries.length ? summary.passportEntries.slice(0, 4).map((entry) => entry.country.code) : ["KR", "US", "FR", "JP"]).map((code) => <i key={code}>{code}</i>)}
+            {(summary.routeStampEntries.length ? summary.routeStampEntries.slice(0, 4).map((entry) => entry.country.code) : ["KR", "US", "FR", "JP"]).map((code) => <i key={code}>{code}</i>)}
           </div>
         </div>
       </section>
-      <section className="metric-grid" aria-label="Passport summary">
+      <section className="metric-grid" aria-label="RouteStamp summary">
         <Metric label="Countries" value={summary.countriesVisited} detail="Unlocked destinations" />
         <Metric label="Continents" value={summary.continentsVisited} detail="Across your activities" />
         <Metric label="Activities" value={summary.activityCount} detail={`${summary.unresolvedActivityCount} awaiting a country`} />
@@ -240,7 +241,7 @@ function Dashboard({ state, busy, onSync }: { state: AppState; busy: boolean; on
       </section>
       <section className="two-column">
         <div>
-          <SectionHeading title="Recent unlocks" href="#passport" label="View passport" />
+          <SectionHeading title="Recent unlocks" href="#routestamp" label="View RouteStamp" />
           <div className="country-list">{summary.recentCountries.map((entry) => <CountryRow key={entry.country.code} entry={entry} />)}</div>
         </div>
         <div>
@@ -256,13 +257,13 @@ function Dashboard({ state, busy, onSync }: { state: AppState; busy: boolean; on
   );
 }
 
-function Passport({ state }: { state: AppState }) {
-  const entries = buildPassportEntries(state);
+function RouteStamp({ state }: { state: AppState }) {
+  const entries = buildRouteStampEntries(state);
   const [scope, setScope] = useState<"unlocked" | "all">("unlocked");
   const [sportFilter, setSportFilter] = useState("all");
-  const [sortBy, setSortBy] = useState<PassportSort>("latest");
+  const [sortBy, setSortBy] = useState<RouteStampSort>("latest");
   const sportTypes = [...new Set(entries.flatMap((entry) => entry.sportTypes))].sort((a, b) => sportLabel(a).localeCompare(sportLabel(b)));
-  const visibleEntries = filterAndSortPassportEntries(entries, sportFilter, sortBy);
+  const visibleEntries = filterAndSortRouteStampEntries(entries, sportFilter, sortBy);
   const unlocked = new Set(entries.map((entry) => entry.country.code));
   const locked = scope === "all" && sportFilter === "all"
     ? state.countries.filter((country) => !unlocked.has(country.code)).sort((a, b) => a.name.localeCompare(b.name))
@@ -270,8 +271,8 @@ function Passport({ state }: { state: AppState }) {
   const hasResults = visibleEntries.length > 0 || locked.length > 0;
   return (
     <>
-      <PageTitle title="Passport" copy="Collected country stamps from your endurance activity history." />
-      <div className="toolbar" role="toolbar" aria-label="Passport filters">
+      <PageTitle title="RouteStamp" copy="Collected country stamps from your endurance activity history." />
+      <div className="toolbar" role="toolbar" aria-label="RouteStamp filters">
         <select className="chip" aria-label="Country status" value={scope} onChange={(event) => setScope(event.target.value as "unlocked" | "all")}>
           <option value="unlocked">Unlocked</option>
           <option value="all">All countries</option>
@@ -280,7 +281,7 @@ function Passport({ state }: { state: AppState }) {
           <option value="all">All sports</option>
           {sportTypes.map((sport) => <option value={sport} key={sport}>{sportLabel(sport)}</option>)}
         </select>
-        <select className="chip" aria-label="Passport order" value={sortBy} onChange={(event) => setSortBy(event.target.value as PassportSort)}>
+        <select className="chip" aria-label="RouteStamp order" value={sortBy} onChange={(event) => setSortBy(event.target.value as RouteStampSort)}>
           <option value="latest">Latest visit</option>
           <option value="earliest">Earliest visit</option>
           <option value="country">Country A-Z</option>
@@ -288,19 +289,19 @@ function Passport({ state }: { state: AppState }) {
         </select>
       </div>
       {hasResults ? (
-        <section className="stamp-grid" aria-label={scope === "unlocked" ? "Unlocked passport stamps" : "All passport countries"}>
+        <section className="stamp-grid" aria-label={scope === "unlocked" ? "Unlocked RouteStamp stamps" : "All RouteStamp countries"}>
           {visibleEntries.map((entry) => <StampCard key={entry.country.code} entry={entry} />)}
           {locked.map((country) => <LockedStampCard key={country.code} country={country} />)}
         </section>
       ) : (
-        <section className="empty-state passport-empty"><h2>No matching stamps</h2><p>Choose another sport to see countries from those activities.</p></section>
+        <section className="empty-state route-stamp-empty"><h2>No matching stamps</h2><p>Choose another sport to see countries from those activities.</p></section>
       )}
     </>
   );
 }
 
 function MapView({ state }: { state: AppState }) {
-  const entries = buildPassportEntries(state);
+  const entries = buildRouteStampEntries(state);
   return (
     <>
       <PageTitle title="Map" copy="A generalized country map for exploration. Exact activity coordinates are not retained." />
@@ -341,12 +342,12 @@ function Activities({ state }: { state: AppState }) {
 
   return (
     <>
-      <PageTitle title="Activities" copy="Private summaries used to build your passport." />
+      <PageTitle title="Activities" copy="Private summaries used to build your RouteStamp." />
       <section className="table-wrap" aria-label="Activity summaries">
         <table><thead><tr><th>Activity</th><th>Country</th><th>Sport</th><th>Date</th><th>Distance</th><th>Time</th></tr></thead>
           <tbody>{rows.map((activity) => {
             const country = activity.countryCode ? countries.get(activity.countryCode) : null;
-            return <tr key={activity.id}><td>{activity.name}</td><td>{country ? `${country.flag} ${country.name}` : <span className="unresolved">Unresolved</span>}</td><td>{sportLabel(activity.sportType)}</td><td>{formatDate(activity.startTime)}</td><td>{formatDistance(activity.distanceMeters)}</td><td>{formatDuration(activity.movingTimeSeconds)}</td></tr>;
+            return <tr key={activity.id}><td>{activity.name}</td><td>{country ? `${country.flag} ${country.name}` : <span className="unresolved">Unresolved</span>}</td><td><span className="sport-label"><ActivityIcon sportType={activity.sportType} size={18} />{sportLabel(activity.sportType)}</span></td><td>{formatDate(activity.startTime)}</td><td>{formatDistance(activity.distanceMeters)}</td><td>{formatDuration(activity.movingTimeSeconds)}</td></tr>;
           })}</tbody>
         </table>
         {state.authenticated && nextCursor && <button className="button secondary" type="button" disabled={loading} onClick={() => void loadPage(nextCursor)}>{loading ? "Loading..." : "Load More"}</button>}
@@ -364,7 +365,7 @@ function Privacy({ state, onChange }: { state: AppState; onChange: (settings: Pr
     <>
       <PageTitle title="Privacy Center" copy="Your real-data beta remains private while you review imported results." />
       <section className="settings-grid">
-        <div className="settings-panel"><h2>Public passport</h2><Toggle label="Enable public passport" checked={false} disabled /><p className="helper">Public sharing is disabled for this beta at both the UI and API layers.</p></div>
+        <div className="settings-panel"><h2>Public RouteStamp</h2><Toggle label="Enable public RouteStamp" checked={false} disabled /><p className="helper">Public sharing is disabled for this beta at both the UI and API layers.</p></div>
         <div className="settings-panel"><h2>Future public fields</h2>{Object.entries(settings.visibility).map(([key, value]) => <Toggle key={key} label={privacyLabel(key)} checked={value} disabled={!state.authenticated} onChange={(checked) => changeVisibility(key as keyof PrivacySettings["visibility"], checked)} />)}</div>
         <div className="settings-panel"><h2>Discovery</h2><Toggle label="Discoverable inside app" checked={false} disabled /><Toggle label="Allow search indexing" checked={false} disabled /></div>
         <div className="settings-panel accent"><h2>Current public projection</h2><pre>{JSON.stringify({ disabled: true, reason: "private_beta" }, null, 2)}</pre></div>
@@ -374,7 +375,7 @@ function Privacy({ state, onChange }: { state: AppState; onChange: (settings: Pr
 }
 
 function PrivateBetaNotice() {
-  return <><PageTitle title="Public Passport" copy="Public sharing is unavailable during the private beta." /><section className="empty-state"><h2>No real data is public</h2><p>Review country resolution and imported totals before a public projection is introduced.</p><a className="button primary" href="#privacy">Open Privacy Center</a></section></>;
+  return <><PageTitle title="Public RouteStamp" copy="Public sharing is unavailable during the private beta." /><section className="empty-state"><h2>No real data is public</h2><p>Review country resolution and imported totals before a public projection is introduced.</p><a className="button primary" href="#privacy">Open Privacy Center</a></section></>;
 }
 
 function Settings({ state, busy, onSync, onDisconnect, onDelete }: { state: AppState; busy: boolean; onSync: () => void; onDisconnect: () => void; onDelete: () => void }) {
@@ -383,7 +384,7 @@ function Settings({ state, busy, onSync, onDisconnect, onDelete }: { state: AppS
       <PageTitle title="Settings" copy="Manage the private connection, export, disconnect, and account deletion controls." />
       <section className="settings-grid">
         <div className="settings-panel"><h2>Connected app</h2><p>{state.providerConnected ? "Strava connection is active." : "Connect Strava to import your account."}</p><button className="button primary" type="button" onClick={onSync} disabled={busy || (state.authenticated && !state.providerConnected)}>{state.authenticated ? "Manual Sync" : "Connect Strava"}</button><SyncProgress job={state.syncJob} /></div>
-        <div className="settings-panel"><h2>Export</h2><p>Download profile, passport, summaries, privacy settings, and safe connection metadata.</p><a className="button secondary" href={state.authenticated ? "/api/export" : undefined} aria-disabled={!state.authenticated}>Export Data</a></div>
+        <div className="settings-panel"><h2>Export</h2><p>Download profile, RouteStamp, summaries, privacy settings, and safe connection metadata.</p><a className="button secondary" href={state.authenticated ? "/api/export" : undefined} aria-disabled={!state.authenticated}>Export Data</a></div>
         <div className="settings-panel danger"><h2>Disconnect Strava</h2><p>Revoke provider access while retaining imported summaries.</p><button className="button destructive" type="button" disabled={!state.providerConnected || busy} onClick={onDisconnect}>Disconnect</button></div>
         <div className="settings-panel danger"><h2>Delete account</h2><p>Revoke access and permanently delete all private-beta records.</p><button className="button destructive" type="button" disabled={!state.authenticated || busy} onClick={onDelete}>Delete Account</button></div>
       </section>
@@ -396,16 +397,16 @@ function Nav({ className, route }: { className: string; route: RouteName }) {
 }
 
 function NavLinks({ route, includePublic = false }: { route: RouteName; includePublic?: boolean }) {
-  const items: Array<[RouteName, string]> = [["dashboard", "Dashboard"], ["passport", "Passport"], ["map", "Map"], ["activities", "Activities"], ["privacy", "Privacy Center"], ...(includePublic ? [["public", "Public Passport"] as [RouteName, string]] : []), ["settings", "Settings"]];
+  const items: Array<[RouteName, string]> = [["dashboard", "Dashboard"], ["routestamp", "RouteStamp"], ["map", "Map"], ["activities", "Activities"], ["privacy", "Privacy Center"], ...(includePublic ? [["public", "Public RouteStamp"] as [RouteName, string]] : []), ["settings", "Settings"]];
   return <>{items.map(([key, label]) => <a key={key} href={`#${key}`} aria-current={route === key ? "page" : undefined}>{label}</a>)}</>;
 }
 
-function PageTitle({ title, copy }: { title: string; copy: string }) { return <section className="page-title"><span className="eyebrow">STRAVA Passport</span><h1>{title}</h1><p>{copy}</p></section>; }
+function PageTitle({ title, copy }: { title: string; copy: string }) { return <section className="page-title"><span className="eyebrow">RouteStamp</span><h1>{title}</h1><p>{copy}</p></section>; }
 function Metric({ label, value, detail }: { label: string; value: string | number; detail: string }) { return <article className="metric"><span>{label}</span><strong>{value}</strong><small>{detail}</small></article>; }
 function SectionHeading({ title, href, label }: { title: string; href: string; label: string }) { return <div className="section-heading"><h2>{title}</h2><a className="text-link" href={href}>{label}</a></div>; }
-function CountryRow({ entry }: { entry: PassportEntry }) { return <article className="row-card"><span className="flag">{entry.country.flag}</span><div><strong>{entry.country.name}</strong><small>{entry.activityCount} activities · {formatDistance(entry.totalDistanceMeters)}</small></div><span>{formatDate(entry.lastVisitedAt)}</span></article>; }
-function ActivityRow({ activity, countries }: { activity: ActivitySummary; countries: Country[] }) { const country = activity.countryCode ? countries.find((item) => item.code === activity.countryCode) : null; return <article className="row-card"><span className="sport">{sportLabel(activity.sportType).slice(0, 2)}</span><div><strong>{activity.name}</strong><small>{country ? `${country.flag} ${country.name}` : "Country unresolved"} · {sportLabel(activity.sportType)}</small></div><span>{formatDistance(activity.distanceMeters)}</span></article>; }
-function StampCard({ entry }: { entry: PassportEntry }) { return <article className="stamp-card"><div className={`stamp ${entry.stamp.variant}`}><span>{entry.country.flag}</span><strong>{entry.country.code}</strong><small>{formatDate(entry.firstVisitedAt)}</small></div><h2>{entry.country.name}</h2><p>{entry.activityCount} activities · {formatDistance(entry.totalDistanceMeters)}</p><div className="badge-row">{entry.sportTypes.map((sport) => <span className="badge" key={sport}>{sportLabel(sport)}</span>)}</div></article>; }
+function CountryRow({ entry }: { entry: RouteStampEntry }) { return <article className="row-card"><span className="flag">{entry.country.flag}</span><div><strong>{entry.country.name}</strong><small>{entry.activityCount} activities · {formatDistance(entry.totalDistanceMeters)}</small></div><span>{formatDate(entry.lastVisitedAt)}</span></article>; }
+function ActivityRow({ activity, countries }: { activity: ActivitySummary; countries: Country[] }) { const country = activity.countryCode ? countries.find((item) => item.code === activity.countryCode) : null; return <article className="row-card"><span className="sport"><ActivityIcon sportType={activity.sportType} /></span><div><strong>{activity.name}</strong><small>{country ? `${country.flag} ${country.name}` : "Country unresolved"} · {sportLabel(activity.sportType)}</small></div><span>{formatDistance(activity.distanceMeters)}</span></article>; }
+function StampCard({ entry }: { entry: RouteStampEntry }) { return <article className="stamp-card"><div className={`stamp ${entry.stamp.variant}`}><span>{entry.country.flag}</span><strong>{entry.country.code}</strong><small>{formatDate(entry.firstVisitedAt)}</small></div><h2>{entry.country.name}</h2><p>{entry.activityCount} activities · {formatDistance(entry.totalDistanceMeters)}</p><div className="badge-row">{entry.sportTypes.map((sport) => <span className="badge sport-label" key={sport}><ActivityIcon sportType={sport} size={14} />{sportLabel(sport)}</span>)}</div></article>; }
 function LockedStampCard({ country }: { country: Country }) { return <article className="stamp-card locked"><div className="stamp locked-stamp"><span>{country.flag}</span><strong>{country.code}</strong><small>Locked</small></div><h2>{country.name}</h2><p>No activities imported yet.</p></article>; }
 function Toggle({ label, checked, disabled = false, onChange }: { label: string; checked: boolean; disabled?: boolean; onChange?: (value: boolean) => void }) { return <label className="toggle"><span>{label}</span><input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange?.(event.target.checked)} /></label>; }
 function SyncProgress({ job }: { job: SyncJob }) { if (!["pending", "running", "rate_limited"].includes(job.status)) return null; return <div className="sync-progress"><progress max={Math.max(job.processed + 200, 200)} value={job.processed} /><small>{job.status === "pending" ? "Queued for server sync" : job.status === "rate_limited" ? `Paused for ${job.retryAfterSeconds ?? "a few"} seconds` : `${job.processed} activities processed`}</small></div>; }

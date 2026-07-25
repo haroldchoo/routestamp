@@ -1,6 +1,6 @@
-# STRAVA Passport
+# RouteStamp
 
-STRAVA Passport is a private-by-default athletic travel journal. This repository contains two independently hosted surfaces:
+RouteStamp is a private-by-default athletic travel journal. This repository contains two independently hosted surfaces:
 
 - The dependency-free demo in `index.html` and `src/`, published through GitHub Pages.
 - The invite-only Strava beta in `app/`, `components/`, and `lib/`, deployed as a Next.js application on Vercel.
@@ -36,7 +36,7 @@ npm audit
 - Browser access to Supabase tables is revoked; only server routes use the service-role key.
 - OAuth sessions use a signed, HTTP-only, same-site cookie.
 - Activity sync is queued by the browser and processed by a protected server worker in bounded Strava pages.
-- Dashboard state returns cached passport summaries and recent activities; the Activity Log is paginated.
+- Dashboard state returns cached RouteStamp summaries and recent activities; the Activity Log is paginated.
 - Country lookup runs locally from packaged GeoJSON boundaries. Coordinates and polylines are never persisted or returned.
 - The current public demo remains private-data-free and continues to work as a static site.
 

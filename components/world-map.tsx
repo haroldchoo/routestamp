@@ -7,7 +7,7 @@ import type { GeometryCollection, Topology } from "topojson-specification";
 import countryMetadata from "world-countries";
 import worldTopology from "world-atlas/countries-110m.json";
 import { formatDistance } from "@/lib/domain";
-import type { PassportEntry } from "@/lib/types";
+import type { RouteStampEntry } from "@/lib/types";
 
 type AtlasProperties = { name?: string };
 type CountryMetadata = { cca2: string; ccn3?: string };
@@ -38,7 +38,7 @@ const mapCountries = countryFeatures
   })
   .filter((country) => country.path && country.code !== "AQ");
 
-export function WorldMap({ entries }: { entries: PassportEntry[] }) {
+export function WorldMap({ entries }: { entries: RouteStampEntry[] }) {
   const [selectedCode, setSelectedCode] = useState<string | null>(entries[0]?.country.code ?? null);
   const entriesByCode = useMemo(() => new Map(entries.map((entry) => [entry.country.code, entry])), [entries]);
   const selectedEntry = (selectedCode ? entriesByCode.get(selectedCode) : null) ?? entries[0] ?? null;
@@ -46,7 +46,7 @@ export function WorldMap({ entries }: { entries: PassportEntry[] }) {
   return (
     <div className="world-map" aria-label="Visited countries on a world map">
       <svg className="world-map-canvas" viewBox="0 0 1000 500" role="img" aria-labelledby="world-map-title world-map-description">
-        <title id="world-map-title">Your Strava passport world map</title>
+        <title id="world-map-title">Your RouteStamp world map</title>
         <desc id="world-map-description">Visited countries are highlighted. Select a highlighted country to see its activity summary.</desc>
         <g>
           {mapCountries.map((country) => {

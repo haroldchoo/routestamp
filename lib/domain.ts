@@ -1,15 +1,15 @@
-import type { ActivitySummary, AppState, DashboardSummary, PassportEntry } from "@/lib/types";
+import type { ActivitySummary, AppState, DashboardSummary, RouteStampEntry } from "@/lib/types";
 
-export type PassportSort = "latest" | "earliest" | "country" | "activities";
+export type RouteStampSort = "latest" | "earliest" | "country" | "activities";
 
-export function buildPassportEntries(state: Pick<AppState, "countries"> & { activities?: ActivitySummary[]; passportEntries?: PassportEntry[] }): PassportEntry[] {
+export function buildRouteStampEntries(state: Pick<AppState, "countries"> & { activities?: ActivitySummary[]; routeStampEntries?: RouteStampEntry[] }): RouteStampEntry[] {
   const activities = state.activities ?? [];
-  if (!state.activities && state.passportEntries) return state.passportEntries;
+  if (!state.activities && state.routeStampEntries) return state.routeStampEntries;
   const countriesByCode = new Map(state.countries.map((country) => [country.code, country]));
   const grouped = new Map<string, ActivitySummary[]>();
 
   for (const activity of activities) {
-    if (!isPassportEligibleActivity(activity)) continue;
+    if (!isRouteStampEligibleActivity(activity)) continue;
     const group = grouped.get(activity.countryCode) ?? [];
     group.push(activity);
     grouped.set(activity.countryCode, group);
@@ -30,31 +30,31 @@ export function buildPassportEntries(state: Pick<AppState, "countries"> & { acti
         totalElevationGainMeters: sum(sorted, "elevationGainMeters"),
         sportTypes: [...new Set(sorted.map((item) => item.sportType))].sort(),
         stamp: { variant: `classic-${(countryCode.charCodeAt(0) + countryCode.charCodeAt(1)) % 4}` },
-      } satisfies PassportEntry;
+      } satisfies RouteStampEntry;
     })
-    .filter((entry): entry is PassportEntry => Boolean(entry))
+    .filter((entry): entry is RouteStampEntry => Boolean(entry))
     .sort((a, b) => a.country.name.localeCompare(b.country.name));
 }
 
-export function buildDashboardSummary(state: Pick<AppState, "countries"> & { activities?: ActivitySummary[]; passportEntries?: PassportEntry[]; dashboardSummary?: DashboardSummary }): DashboardSummary {
+export function buildDashboardSummary(state: Pick<AppState, "countries"> & { activities?: ActivitySummary[]; routeStampEntries?: RouteStampEntry[]; dashboardSummary?: DashboardSummary }): DashboardSummary {
   const activities = state.activities ?? [];
   if (!state.activities && state.dashboardSummary) return state.dashboardSummary;
-  const passportEntries = buildPassportEntries(state);
+  const routeStampEntries = buildRouteStampEntries(state);
   return {
-    passportEntries,
-    countriesVisited: passportEntries.length,
-    continentsVisited: new Set(passportEntries.map((entry) => entry.country.continent)).size,
+    routeStampEntries,
+    countriesVisited: routeStampEntries.length,
+    continentsVisited: new Set(routeStampEntries.map((entry) => entry.country.continent)).size,
     activityCount: activities.length,
     unresolvedActivityCount: activities.filter((activity) => activity.geographicResolutionStatus === "unresolved").length,
     totalDistanceMeters: sum(activities, "distanceMeters"),
     totalMovingTimeSeconds: sum(activities, "movingTimeSeconds"),
     totalElevationGainMeters: sum(activities, "elevationGainMeters"),
-    recentCountries: [...passportEntries].sort((a, b) => Date.parse(b.lastVisitedAt) - Date.parse(a.lastVisitedAt)).slice(0, 4),
+    recentCountries: [...routeStampEntries].sort((a, b) => Date.parse(b.lastVisitedAt) - Date.parse(a.lastVisitedAt)).slice(0, 4),
     recentActivities: [...activities].sort((a, b) => Date.parse(b.startTime) - Date.parse(a.startTime)).slice(0, 6),
   };
 }
 
-export function filterAndSortPassportEntries(entries: PassportEntry[], sportType: string, sortBy: PassportSort) {
+export function filterAndSortRouteStampEntries(entries: RouteStampEntry[], sportType: string, sortBy: RouteStampSort) {
   const filtered = sportType === "all" ? entries : entries.filter((entry) => entry.sportTypes.includes(sportType));
   return [...filtered].sort((a, b) => {
     if (sortBy === "latest") return Date.parse(b.lastVisitedAt) - Date.parse(a.lastVisitedAt);
@@ -71,7 +71,7 @@ export function buildExport(state: AppState) {
       providerStatus: state.providerConnected ? state.user.providerStatus : "Disconnected",
       createdAt: state.user.createdAt,
     },
-    passport: buildPassportEntries(state),
+    routeStamp: buildRouteStampEntries(state),
     activitySummaries: state.activities ?? state.recentActivities,
     privacySettings: state.privacySettings,
     connectionMetadata: {
@@ -101,7 +101,7 @@ export function sportLabel(sportType: string) {
   return normalized.replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-export function isPassportEligibleActivity(activity: ActivitySummary): activity is ActivitySummary & { countryCode: string } {
+export function isRouteStampEligibleActivity(activity: ActivitySummary): activity is ActivitySummary & { countryCode: string } {
   if (activity.geographicResolutionStatus !== "resolved" || !activity.countryCode) return false;
   const sportType = activity.sportType.replace(/[\s_-]/g, "").toLowerCase();
   const isVirtualRide = sportType === "virtualride" || (activity.flags.trainer && sportType.endsWith("ride"));

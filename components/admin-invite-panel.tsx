@@ -50,7 +50,7 @@ export function AdminInvitePanel() {
   const shareInvite = async () => {
     if (!invite) return;
     if (navigator.share) {
-      await navigator.share({ title: "STRAVA Passport invite", url: invite.inviteUrl });
+      await navigator.share({ title: "RouteStamp invite", url: invite.inviteUrl });
       return;
     }
     await copyInvite();
@@ -59,9 +59,9 @@ export function AdminInvitePanel() {
   return (
     <main className="admin-page">
       <section className="admin-panel">
-        <Link className="brand admin-brand" href="/" aria-label="STRAVA Passport dashboard">
+        <Link className="brand admin-brand" href="/" aria-label="RouteStamp dashboard">
           <span className="brand-mark" aria-hidden="true">SP</span>
-          <span><strong>STRAVA Passport</strong><small>Invite admin</small></span>
+          <span><strong>RouteStamp</strong><small>Invite admin</small></span>
         </Link>
 
         <div className="admin-heading">

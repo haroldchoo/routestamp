@@ -12,7 +12,7 @@ Do not paste the Strava client secret, tokens, Supabase service-role key, or gen
 
 ## 2. Create Vercel
 
-1. Create a Vercel account using the GitHub account that owns `haroldchoo/strava-passport`.
+1. Create a Vercel account using the GitHub account that owns `haroldchoo/routestamp`.
 2. Import the repository as a new project. Vercel will detect Next.js from `package.json`.
 3. Keep the GitHub Pages deployment enabled; Vercel and Pages can deploy different entrypoints from the same branch.
 4. Complete the first deployment and note its stable `*.vercel.app` hostname.
@@ -30,7 +30,7 @@ Add these Vercel variables for Production and Preview where appropriate:
 
 | Variable | Value |
 | --- | --- |
-| `NEXT_PUBLIC_APP_URL` | The production Vercel origin, such as `https://strava-passport.vercel.app` |
+| `NEXT_PUBLIC_APP_URL` | The production Vercel origin, such as `https://routestamp.vercel.app` |
 | `STRAVA_CLIENT_ID` | Client ID from the existing Strava API application |
 | `STRAVA_CLIENT_SECRET` | Client secret from the Strava API application |
 | `SUPABASE_URL` | Supabase project URL |
@@ -111,7 +111,7 @@ The worker claims ready jobs, respects global Strava rate-limit pauses, and exit
 
 ## Operational notes
 
-- Public passport output remains disabled regardless of saved future field preferences.
+- Public RouteStamp output remains disabled regardless of saved future field preferences.
 - A full manual sync reconciles deleted activities by removing rows not seen by the completed job.
 - If Strava returns a rate limit, the job and global provider throttle record the retry time and can resume after the window resets.
 - If a worker dies mid-job, `claim_sync_jobs` can recover stale locks after ten minutes.

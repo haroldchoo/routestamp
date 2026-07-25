@@ -25,7 +25,7 @@ export type Country = {
 };
 
 export type PrivacySettings = {
-  publicPassportEnabled: false;
+  publicRouteStampEnabled: false;
   publicUrl: null;
   visibility: {
     displayName: boolean;
@@ -71,7 +71,7 @@ export type AppState = {
   };
   activities?: ActivitySummary[];
   recentActivities: ActivitySummary[];
-  passportEntries: PassportEntry[];
+  routeStampEntries: RouteStampEntry[];
   dashboardSummary: DashboardSummary;
   countries: Country[];
   privacySettings: PrivacySettings;
@@ -84,7 +84,7 @@ export type ActivityPage = {
   nextCursor: string | null;
 };
 
-export type PassportEntry = {
+export type RouteStampEntry = {
   country: Country;
   firstVisitedAt: string;
   lastVisitedAt: string;
@@ -97,7 +97,7 @@ export type PassportEntry = {
 };
 
 export type DashboardSummary = {
-  passportEntries: PassportEntry[];
+  routeStampEntries: RouteStampEntry[];
   countriesVisited: number;
   continentsVisited: number;
   activityCount: number;
@@ -105,6 +105,6 @@ export type DashboardSummary = {
   totalDistanceMeters: number;
   totalMovingTimeSeconds: number;
   totalElevationGainMeters: number;
-  recentCountries: PassportEntry[];
+  recentCountries: RouteStampEntry[];
   recentActivities: ActivitySummary[];
 };

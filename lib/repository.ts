@@ -4,10 +4,10 @@ import { normalizeStravaActivity } from "@/lib/activity-normalizer";
 import { countries, countriesByCode } from "@/lib/countries";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { defaultPrivacySettings } from "@/lib/demo";
-import { buildDashboardSummary, buildPassportEntries } from "@/lib/domain";
+import { buildDashboardSummary, buildRouteStampEntries } from "@/lib/domain";
 import { serverEnv } from "@/lib/env";
 import { supabaseAdmin } from "@/lib/supabase";
-import type { ActivityPage, ActivitySummary, AppState, DashboardSummary, PassportEntry, PrivacySettings, SyncJob } from "@/lib/types";
+import type { ActivityPage, ActivitySummary, AppState, DashboardSummary, RouteStampEntry, PrivacySettings, SyncJob } from "@/lib/types";
 import type { StravaActivity, StravaTokenResponse } from "@/lib/strava";
 
 type Connection = {
@@ -294,12 +294,12 @@ export async function setProviderRateLimit(retryAfterSeconds: number, provider =
 
 export async function loadAppState(athleteId: string): Promise<AppState> {
   const db = supabaseAdmin();
-  const [{ data: athlete, error: athleteError }, { data: connection, error: connectionError }, { data: privacy, error: privacyError }, recentActivities, passportEntries, dashboardSummary, syncJob] = await Promise.all([
+  const [{ data: athlete, error: athleteError }, { data: connection, error: connectionError }, { data: privacy, error: privacyError }, recentActivities, routeStampEntries, dashboardSummary, syncJob] = await Promise.all([
     db.from("athletes").select("id,display_name,avatar_url,created_at").eq("id", athleteId).single(),
     db.from("strava_connections").select("athlete_id,revoked_at").eq("athlete_id", athleteId).maybeSingle(),
     db.from("privacy_settings").select("settings").eq("athlete_id", athleteId).maybeSingle(),
     readRecentActivities(athleteId),
-    readPassportEntries(athleteId),
+    readRouteStampEntries(athleteId),
     readDashboardSummary(athleteId),
     latestSyncJob(athleteId),
   ]);
@@ -317,7 +317,7 @@ export async function loadAppState(athleteId: string): Promise<AppState> {
       createdAt: athlete.created_at,
     },
     recentActivities,
-    passportEntries,
+    routeStampEntries,
     dashboardSummary: { ...dashboardSummary, recentActivities, recentCountries: dashboardSummary.recentCountries },
     countries,
     privacySettings: sanitizePrivacySettings(privacy?.settings),
@@ -329,13 +329,13 @@ export async function loadAppState(athleteId: string): Promise<AppState> {
 export async function loadExportState(athleteId: string): Promise<AppState> {
   const state = await loadAppState(athleteId);
   const activities = await readAllActivities(athleteId);
-  const passportEntries = buildPassportEntries({ activities, countries });
+  const routeStampEntries = buildRouteStampEntries({ activities, countries });
   return {
     ...state,
     activities,
     recentActivities: activities.slice(0, recentActivityLimit),
-    passportEntries,
-    dashboardSummary: buildDashboardSummary({ activities, countries, passportEntries }),
+    routeStampEntries,
+    dashboardSummary: buildDashboardSummary({ activities, countries, routeStampEntries }),
   };
 }
 
@@ -382,13 +382,13 @@ export async function deleteAthlete(athleteId: string) {
 
 async function refreshDerivedActivityData(athleteId: string) {
   const activities = await readAllActivities(athleteId);
-  const passportEntries = buildPassportEntries({ activities, countries });
-  const dashboardSummary = buildDashboardSummary({ activities, countries, passportEntries });
+  const routeStampEntries = buildRouteStampEntries({ activities, countries });
+  const dashboardSummary = buildDashboardSummary({ activities, countries, routeStampEntries });
   const db = supabaseAdmin();
-  const { error: deleteError } = await db.from("passport_country_summaries").delete().eq("athlete_id", athleteId);
+  const { error: deleteError } = await db.from("route_stamp_country_summaries").delete().eq("athlete_id", athleteId);
   throwIfError(deleteError);
-  if (passportEntries.length) {
-    const { error: summaryError } = await db.from("passport_country_summaries").insert(passportEntries.map((entry) => ({
+  if (routeStampEntries.length) {
+    const { error: summaryError } = await db.from("route_stamp_country_summaries").insert(routeStampEntries.map((entry) => ({
       athlete_id: athleteId,
       country_code: entry.country.code,
       first_visited_at: entry.firstVisitedAt,
@@ -416,29 +416,29 @@ async function refreshDerivedActivityData(athleteId: string) {
 }
 
 async function readDashboardSummary(athleteId: string): Promise<DashboardSummary> {
-  const [passportEntries, recentActivities, { data: totals, error: totalsError }] = await Promise.all([
-    readPassportEntries(athleteId),
+  const [routeStampEntries, recentActivities, { data: totals, error: totalsError }] = await Promise.all([
+    readRouteStampEntries(athleteId),
     readRecentActivities(athleteId),
     supabaseAdmin().from("athlete_activity_totals").select("*").eq("athlete_id", athleteId).maybeSingle(),
   ]);
   throwIfError(totalsError);
   return {
-    passportEntries,
-    countriesVisited: passportEntries.length,
-    continentsVisited: new Set(passportEntries.map((entry) => entry.country.continent)).size,
+    routeStampEntries,
+    countriesVisited: routeStampEntries.length,
+    continentsVisited: new Set(routeStampEntries.map((entry) => entry.country.continent)).size,
     activityCount: Number(totals?.activity_count ?? 0),
     unresolvedActivityCount: Number(totals?.unresolved_activity_count ?? 0),
     totalDistanceMeters: Number(totals?.total_distance_meters ?? 0),
     totalMovingTimeSeconds: Number(totals?.total_moving_time_seconds ?? 0),
     totalElevationGainMeters: Number(totals?.total_elevation_gain_meters ?? 0),
-    recentCountries: [...passportEntries].sort((a, b) => Date.parse(b.lastVisitedAt) - Date.parse(a.lastVisitedAt)).slice(0, 4),
+    recentCountries: [...routeStampEntries].sort((a, b) => Date.parse(b.lastVisitedAt) - Date.parse(a.lastVisitedAt)).slice(0, 4),
     recentActivities,
   };
 }
 
-async function readPassportEntries(athleteId: string): Promise<PassportEntry[]> {
+async function readRouteStampEntries(athleteId: string): Promise<RouteStampEntry[]> {
   const { data, error } = await supabaseAdmin()
-    .from("passport_country_summaries")
+    .from("route_stamp_country_summaries")
     .select("*")
     .eq("athlete_id", athleteId)
     .order("country_code", { ascending: true });
@@ -457,8 +457,8 @@ async function readPassportEntries(athleteId: string): Promise<PassportEntry[]> 
       totalElevationGainMeters: Number(row.total_elevation_gain_meters),
       sportTypes: Array.isArray(row.sport_types) ? row.sport_types.map(String).sort() : [],
       stamp: { variant: String(row.stamp_variant) },
-    } satisfies PassportEntry;
-  }).filter((entry): entry is PassportEntry => Boolean(entry));
+    } satisfies RouteStampEntry;
+  }).filter((entry): entry is RouteStampEntry => Boolean(entry));
 }
 
 async function readRecentActivities(athleteId: string) {
@@ -537,7 +537,7 @@ function sanitizePrivacySettings(value: unknown): PrivacySettings {
   return {
     ...structuredClone(defaultPrivacySettings),
     ...input,
-    publicPassportEnabled: false,
+    publicRouteStampEnabled: false,
     publicUrl: null,
     discoverableWithinApp: false,
     allowSearchEngineIndexing: false,

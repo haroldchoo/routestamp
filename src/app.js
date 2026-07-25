@@ -1,12 +1,12 @@
-const storageKey = "strava-passport-state-v1";
+const storageKey = "routestamp-state-v1";
 const routes = new Map([
   ["", renderHome],
   ["dashboard", renderDashboard],
-  ["passport", renderPassport],
+  ["routestamp", renderRouteStamp],
   ["map", renderMap],
   ["activities", renderActivities],
   ["privacy", renderPrivacy],
-  ["public", renderPublicPassport],
+  ["public", renderPublicRouteStamp],
   ["settings", renderSettings],
 ]);
 
@@ -70,11 +70,11 @@ function renderHome() {
 function renderDashboard() {
   const summary = buildDashboardSummary(state);
   setMain(`
-    ${hero("This shows where sport has taken you.", "A private-by-default passport for runs, rides, swims, hikes, and race weekends.", [
+    ${hero("This shows where sport has taken you.", "A private-by-default RouteStamp for runs, rides, swims, hikes, and race weekends.", [
       button("Connect Strava", "primary", "connect-strava"),
       button("Refresh Demo", "secondary", "sync-demo"),
     ])}
-    <section class="metric-grid" aria-label="Passport summary">
+    <section class="metric-grid" aria-label="RouteStamp summary">
       ${metric("Countries", summary.countriesVisited, "Unlocked destinations")}
       ${metric("Continents", summary.continentsVisited, "Across your activities")}
       ${metric("Activities", summary.activityCount, "Imported summaries")}
@@ -84,7 +84,7 @@ function renderDashboard() {
       <div>
         <div class="section-heading">
           <h2>Recent unlocks</h2>
-          <a class="text-link" href="#passport">View passport</a>
+          <a class="text-link" href="#routestamp">View RouteStamp</a>
         </div>
         <div class="country-list">
           ${summary.recentCountries.map(countryRow).join("")}
@@ -103,25 +103,25 @@ function renderDashboard() {
     <section class="privacy-band">
       <div>
         <h2>Privacy is part of the product.</h2>
-        <p>Your public passport is off until you turn it on. Activity names and precise locations stay private.</p>
+        <p>Your public RouteStamp is off until you turn it on. Activity names and precise locations stay private.</p>
       </div>
       ${button("Open Privacy Center", "outline", "go-privacy")}
     </section>
   `);
 }
 
-function renderPassport() {
-  const entries = buildPassportEntries(state.activities, state.countries);
+function renderRouteStamp() {
+  const entries = buildRouteStampEntries(state.activities, state.countries);
   const unlockedCodes = new Set(entries.map((entry) => entry.country.code));
   const locked = state.countries.filter((country) => !unlockedCodes.has(country.code));
   setMain(`
-    ${pageTitle("Passport", "Collected country stamps from your endurance activity history.")}
-    <div class="toolbar" role="toolbar" aria-label="Passport filters">
+    ${pageTitle("RouteStamp", "Collected country stamps from your endurance activity history.")}
+    <div class="toolbar" role="toolbar" aria-label="RouteStamp filters">
       <button class="chip active" type="button">Unlocked</button>
       <button class="chip" type="button">All sports</button>
       <button class="chip" type="button">Latest visit</button>
     </div>
-    <section class="stamp-grid" aria-label="Unlocked passport stamps">
+    <section class="stamp-grid" aria-label="Unlocked RouteStamp stamps">
       ${entries.map(stampCard).join("")}
       ${locked.map(lockedStampCard).join("")}
     </section>
@@ -129,7 +129,7 @@ function renderPassport() {
 }
 
 function renderMap() {
-  const entries = buildPassportEntries(state.activities, state.countries);
+  const entries = buildRouteStampEntries(state.activities, state.countries);
   const unlocked = new Map(entries.map((entry) => [entry.country.code, entry]));
   setMain(`
     ${pageTitle("Map", "A generalized country map for exploration. Exact activity coordinates are private.")}
@@ -152,7 +152,7 @@ function renderMap() {
 function renderActivities() {
   const rows = [...state.activities].sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
   setMain(`
-    ${pageTitle("Activities", "Private activity summaries used to build your passport.")}
+    ${pageTitle("Activities", "Private activity summaries used to build your RouteStamp.")}
     <section class="table-wrap" aria-label="Activity summaries">
       <table>
         <thead>
@@ -173,15 +173,15 @@ function renderActivities() {
 
 function renderPrivacy() {
   const settings = state.privacySettings;
-  const publicPassport = buildPublicPassport(state);
+  const publicRouteStamp = buildPublicRouteStamp(state);
   setMain(`
     ${pageTitle("Privacy Center", "Choose exactly what can become public. Everything starts private.")}
     <section class="settings-grid">
       <div class="settings-panel">
-        <h2>Public passport</h2>
-        ${toggle("publicPassportEnabled", "Enable public passport", settings.publicPassportEnabled)}
-        <p class="helper">Disabled public passports return no public profile.</p>
-        ${settings.publicPassportEnabled ? `<p class="public-url">Public URL: <a href="#public">${settings.publicUrl}</a></p>` : ""}
+        <h2>Public RouteStamp</h2>
+        ${toggle("publicRouteStampEnabled", "Enable public RouteStamp", settings.publicRouteStampEnabled)}
+        <p class="helper">Disabled public RouteStamps return no public profile.</p>
+        ${settings.publicRouteStampEnabled ? `<p class="public-url">Public URL: <a href="#public">${settings.publicUrl}</a></p>` : ""}
       </div>
       <div class="settings-panel">
         <h2>Public fields</h2>
@@ -194,17 +194,17 @@ function renderPrivacy() {
       </div>
       <div class="settings-panel accent">
         <h2>Current public projection</h2>
-        <pre>${escapeHtml(JSON.stringify(publicPassport || { disabled: true }, null, 2))}</pre>
+        <pre>${escapeHtml(JSON.stringify(publicRouteStamp || { disabled: true }, null, 2))}</pre>
       </div>
     </section>
   `);
 }
 
-function renderPublicPassport() {
-  const publicPassport = buildPublicPassport(state);
-  if (!publicPassport) {
+function renderPublicRouteStamp() {
+  const publicRouteStamp = buildPublicRouteStamp(state);
+  if (!publicRouteStamp) {
     setMain(`
-      ${pageTitle("Public Passport", "Your public passport is currently disabled.")}
+      ${pageTitle("Public RouteStamp", "Your public RouteStamp is currently disabled.")}
       <section class="empty-state">
         <h2>No public page is visible</h2>
         <p>Turn on public sharing in the Privacy Center when you are ready. Private activity names and coordinates will still stay out of public responses.</p>
@@ -215,12 +215,12 @@ function renderPublicPassport() {
   }
 
   setMain(`
-    ${pageTitle(publicPassport.profile.displayName || "Athlete Passport", "A privacy-controlled view built from approved fields only.")}
+    ${pageTitle(publicRouteStamp.profile.displayName || "Athlete RouteStamp", "A privacy-controlled view built from approved fields only.")}
     <section class="metric-grid">
-      ${Object.entries(publicPassport.summary).map(([key, value]) => metric(labelForPrivacy(key), metricValue(key, value), "Public")).join("")}
+      ${Object.entries(publicRouteStamp.summary).map(([key, value]) => metric(labelForPrivacy(key), metricValue(key, value), "Public")).join("")}
     </section>
     <section class="stamp-grid">
-      ${publicPassport.countries.map(publicStampCard).join("")}
+      ${publicRouteStamp.countries.map(publicStampCard).join("")}
     </section>
   `);
 }
@@ -236,7 +236,7 @@ function renderSettings() {
       </div>
       <div class="settings-panel">
         <h2>Export</h2>
-        <p>Download profile, passport, activity summaries, privacy settings, and safe connection metadata.</p>
+        <p>Download profile, RouteStamp, activity summaries, privacy settings, and safe connection metadata.</p>
         ${button("Export Data", "secondary", "export-data")}
       </div>
       <div class="settings-panel danger">
@@ -246,7 +246,7 @@ function renderSettings() {
       </div>
       <div class="settings-panel danger">
         <h2>Delete account</h2>
-        <p>This clears the local demo account, activities, passport, privacy settings, and connection state.</p>
+        <p>This clears the local demo account, activities, RouteStamp, privacy settings, and connection state.</p>
         ${button("Delete Account", "destructive", "delete-account")}
       </div>
     </section>
@@ -295,10 +295,10 @@ function handleChanges(event) {
     state.privacySettings[key] = value;
   }
 
-  if (state.privacySettings.publicPassportEnabled && !state.privacySettings.publicUrl) {
+  if (state.privacySettings.publicRouteStampEnabled && !state.privacySettings.publicUrl) {
     state.privacySettings.publicUrl = `${location.origin}${location.pathname}#public`;
   }
-  if (!state.privacySettings.publicPassportEnabled) {
+  if (!state.privacySettings.publicRouteStampEnabled) {
     state.privacySettings.allowSearchEngineIndexing = false;
     state.privacySettings.visibility.publicMap = false;
   }
@@ -314,7 +314,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `strava-passport-export-${new Date().toISOString().slice(0, 10)}.json`;
+  link.download = `routestamp-export-${new Date().toISOString().slice(0, 10)}.json`;
   link.click();
   URL.revokeObjectURL(url);
   toast("Export created without tokens or secrets.");
@@ -344,9 +344,9 @@ function hero(title, copy, actions) {
         <p>${copy}</p>
         <div class="action-row">${actions.join("")}</div>
       </div>
-      <div class="passport-preview" aria-hidden="true">
+      <div class="route-stamp-preview" aria-hidden="true">
         <span>Republic of Miles</span>
-        <strong>ATHLETE PASSPORT</strong>
+        <strong>ROUTESTAMP</strong>
         <div class="preview-stamps">
           <i>KR</i><i>US</i><i>FR</i><i>JP</i>
         </div>
@@ -356,7 +356,7 @@ function hero(title, copy, actions) {
 }
 
 function pageTitle(title, copy) {
-  return `<section class="page-title"><span class="eyebrow">STRAVA Passport</span><h1>${title}</h1><p>${copy}</p></section>`;
+  return `<section class="page-title"><span class="eyebrow">RouteStamp</span><h1>${title}</h1><p>${copy}</p></section>`;
 }
 
 function metric(label, value, detail) {
@@ -486,13 +486,13 @@ function setActiveNavigation() {
 }
 
 function restoreTheme() {
-  const theme = localStorage.getItem("strava-passport-theme");
+  const theme = localStorage.getItem("routestamp-theme");
   if (theme === "dark") document.documentElement.classList.add("dark");
 }
 
 function toggleTheme() {
   document.documentElement.classList.toggle("dark");
-  localStorage.setItem("strava-passport-theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
+  localStorage.setItem("routestamp-theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
 }
 
 function toast(message) {

@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
 import { isProduction, serverEnv } from "@/lib/env";
 
-const sessionCookie = "strava_passport_session";
+const sessionCookie = "routestamp_session";
 const oauthStateCookie = "strava_oauth_state";
 const oauthInviteCookie = "strava_oauth_invite";
 
@@ -18,7 +18,7 @@ export async function getSession(): Promise<Session | null> {
   const value = (await cookies()).get(sessionCookie)?.value;
   if (!value) return null;
   try {
-    const { payload } = await jwtVerify(value, signingKey(), { issuer: "strava-passport", audience: "private-beta" });
+    const { payload } = await jwtVerify(value, signingKey(), { issuer: "routestamp", audience: "private-beta" });
     if (typeof payload.sub !== "string" || typeof payload.stravaAthleteId !== "string") return null;
     return { athleteId: payload.sub, stravaAthleteId: payload.stravaAthleteId };
   } catch {
@@ -30,7 +30,7 @@ export async function setSession(session: Session) {
   const token = await new SignJWT({ stravaAthleteId: session.stravaAthleteId })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(session.athleteId)
-    .setIssuer("strava-passport")
+    .setIssuer("routestamp")
     .setAudience("private-beta")
     .setIssuedAt()
     .setExpirationTime("7d")

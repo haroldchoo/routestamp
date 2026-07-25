@@ -1,11 +1,11 @@
 import { countries } from "@/lib/countries";
-import { buildDashboardSummary, buildPassportEntries } from "@/lib/domain";
+import { buildDashboardSummary, buildRouteStampEntries } from "@/lib/domain";
 import type { ActivitySummary, AppState, PrivacySettings } from "@/lib/types";
 
 const demoTimestamp = "2026-07-19T00:00:00.000Z";
 
 export const defaultPrivacySettings: PrivacySettings = {
-  publicPassportEnabled: false,
+  publicRouteStampEnabled: false,
   publicUrl: null,
   visibility: {
     displayName: false,
@@ -69,7 +69,7 @@ const demoActivities = [
 export function createDemoState(): AppState {
   const activities = structuredClone(demoActivities);
   const base = { activities, countries };
-  const passportEntries = buildPassportEntries(base);
+  const routeStampEntries = buildRouteStampEntries(base);
   const dashboardSummary = buildDashboardSummary(base);
   return {
     mode: "demo",
@@ -83,7 +83,7 @@ export function createDemoState(): AppState {
     },
     activities,
     recentActivities: dashboardSummary.recentActivities,
-    passportEntries,
+    routeStampEntries,
     dashboardSummary,
     countries,
     privacySettings: structuredClone(defaultPrivacySettings),

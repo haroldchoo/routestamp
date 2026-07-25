@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { authorizationUrl, refreshAccessToken, revokeToken } from "@/lib/strava";
 
 beforeEach(() => {
-  process.env.NEXT_PUBLIC_APP_URL = "https://passport.example";
+  process.env.NEXT_PUBLIC_APP_URL = "https://routestamp.example";
   process.env.STRAVA_CLIENT_ID = "12345";
   process.env.STRAVA_CLIENT_SECRET = "private-client-secret";
   process.env.STRAVA_ALLOWED_ATHLETE_ID = "67890";
@@ -18,7 +18,7 @@ describe("Strava provider adapter", () => {
   it("builds the allow-listed private-activity OAuth request", () => {
     const url = authorizationUrl("csrf-state");
     expect(url.origin + url.pathname).toBe("https://www.strava.com/oauth/authorize");
-    expect(url.searchParams.get("redirect_uri")).toBe("https://passport.example/api/auth/strava/callback");
+    expect(url.searchParams.get("redirect_uri")).toBe("https://routestamp.example/api/auth/strava/callback");
     expect(url.searchParams.get("scope")).toBe("read,activity:read_all");
     expect(url.searchParams.get("state")).toBe("csrf-state");
   });

@@ -10,7 +10,7 @@ export async function GET() {
   return new NextResponse(body, {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="strava-passport-export-${new Date().toISOString().slice(0, 10)}.json"`,
+      "Content-Disposition": `attachment; filename="routestamp-export-${new Date().toISOString().slice(0, 10)}.json"`,
       "Cache-Control": "no-store",
     },
   });

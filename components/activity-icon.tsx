@@ -1,0 +1,95 @@
+import { createElement } from "react";
+import {
+  Accessibility,
+  Activity,
+  Bike,
+  BicepsFlexed,
+  Bird,
+  CableCar,
+  CircleDot,
+  Dumbbell,
+  Footprints,
+  Goal,
+  Mountain,
+  PersonStanding,
+  Sailboat,
+  ShipWheel,
+  Snowflake,
+  SportShoe,
+  StretchHorizontal,
+  TableProperties,
+  Target,
+  TentTree,
+  Timer,
+  Trophy,
+  Volleyball,
+  Waves,
+  Wind,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
+
+const activityIcons: Record<string, LucideIcon> = {
+  alpineski: Snowflake,
+  backcountryski: Mountain,
+  badminton: Bird,
+  canoeing: ShipWheel,
+  crossfit: BicepsFlexed,
+  ebikeride: Zap,
+  elliptical: Activity,
+  emountainbikeride: Zap,
+  golf: Goal,
+  gravelride: Bike,
+  handcycle: Accessibility,
+  highintensityintervaltraining: Timer,
+  hike: TentTree,
+  iceskate: Snowflake,
+  inlineskate: CircleDot,
+  kayaking: ShipWheel,
+  kitesurf: Wind,
+  mountainbikeride: Mountain,
+  nordicski: Snowflake,
+  pickleball: Target,
+  pilates: StretchHorizontal,
+  racquetball: CircleDot,
+  ride: Bike,
+  rockclimbing: Mountain,
+  rollerski: Snowflake,
+  rowing: Waves,
+  run: SportShoe,
+  sail: Sailboat,
+  skateboard: CircleDot,
+  snowboard: Snowflake,
+  snowshoe: Footprints,
+  soccer: Volleyball,
+  squash: CircleDot,
+  stairstepper: CableCar,
+  standuppaddling: PersonStanding,
+  surfing: Waves,
+  swim: Waves,
+  tabletennis: TableProperties,
+  tennis: Target,
+  trailrun: Mountain,
+  velomobile: Bike,
+  virtualride: Bike,
+  virtualrow: Waves,
+  virtualrun: SportShoe,
+  walk: Footprints,
+  weighttraining: Dumbbell,
+  wheelchair: Accessibility,
+  windsurf: Wind,
+  workout: Activity,
+  yoga: PersonStanding,
+};
+
+function normalizeActivityType(sportType: string) {
+  return sportType.replace(/[\s_-]/g, "").toLowerCase();
+}
+
+export function activityIconFor(sportType: string): LucideIcon {
+  return activityIcons[normalizeActivityType(sportType)] ?? Trophy;
+}
+
+export function ActivityIcon({ sportType, size = 20, className }: { sportType: string; size?: number; className?: string }) {
+  return createElement(activityIconFor(sportType), { className, size, strokeWidth: 2, "aria-hidden": true });
+}

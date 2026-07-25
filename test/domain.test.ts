@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildDashboardSummary, buildExport, buildPassportEntries, filterAndSortPassportEntries } from "@/lib/domain";
+import { buildDashboardSummary, buildExport, buildRouteStampEntries, filterAndSortRouteStampEntries } from "@/lib/domain";
 import { createDemoState } from "@/lib/demo";
 
-describe("passport domain", () => {
+describe("routeStamp domain", () => {
   it("aggregates resolved activities and excludes unresolved locations", () => {
     const state = createDemoState();
     state.activities!.push({ ...state.activities![0], id: "unresolved", countryCode: null, geographicResolutionStatus: "unresolved" });
-    const entries = buildPassportEntries(state);
+    const entries = buildRouteStampEntries(state);
     const summary = buildDashboardSummary(state);
 
     expect(entries).toHaveLength(5);
@@ -27,7 +27,7 @@ describe("passport domain", () => {
       geographicResolutionStatus: "resolved",
     });
 
-    const entries = buildPassportEntries(state);
+    const entries = buildRouteStampEntries(state);
     const summary = buildDashboardSummary(state);
 
     expect(entries.some((entry) => entry.country.code === "CA")).toBe(false);
@@ -36,10 +36,10 @@ describe("passport domain", () => {
     expect(summary.totalDistanceMeters).toBeGreaterThan(buildDashboardSummary(createDemoState()).totalDistanceMeters);
   });
 
-  it("filters passport entries by sport and orders them by latest visit", () => {
-    const entries = buildPassportEntries(createDemoState());
-    const runs = filterAndSortPassportEntries(entries, "Run", "latest");
-    const latest = filterAndSortPassportEntries(entries, "all", "latest");
+  it("filters RouteStamp entries by sport and orders them by latest visit", () => {
+    const entries = buildRouteStampEntries(createDemoState());
+    const runs = filterAndSortRouteStampEntries(entries, "Run", "latest");
+    const latest = filterAndSortRouteStampEntries(entries, "all", "latest");
 
     expect(runs.every((entry) => entry.sportTypes.includes("Run"))).toBe(true);
     expect(runs.map((entry) => entry.country.code)).toEqual(["KR", "JP", "ES", "US"]);

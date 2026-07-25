@@ -26,7 +26,7 @@ create index if not exists sync_jobs_claim_idx on public.sync_jobs (status, retr
   where status in ('pending', 'running', 'rate_limited');
 create index if not exists activities_athlete_start_provider_idx on public.activities (athlete_id, start_time desc, provider_activity_id desc);
 
-create table public.passport_country_summaries (
+create table public.route_stamp_country_summaries (
   athlete_id uuid not null references public.athletes(id) on delete cascade,
   country_code char(2) not null,
   first_visited_at timestamptz not null,
@@ -53,17 +53,17 @@ create table public.athlete_activity_totals (
 
 alter table public.invites enable row level security;
 alter table public.provider_rate_limits enable row level security;
-alter table public.passport_country_summaries enable row level security;
+alter table public.route_stamp_country_summaries enable row level security;
 alter table public.athlete_activity_totals enable row level security;
 
 revoke all on public.invites from anon, authenticated;
 revoke all on public.provider_rate_limits from anon, authenticated;
-revoke all on public.passport_country_summaries from anon, authenticated;
+revoke all on public.route_stamp_country_summaries from anon, authenticated;
 revoke all on public.athlete_activity_totals from anon, authenticated;
 
 grant select, insert, update, delete on public.invites to service_role;
 grant select, insert, update, delete on public.provider_rate_limits to service_role;
-grant select, insert, update, delete on public.passport_country_summaries to service_role;
+grant select, insert, update, delete on public.route_stamp_country_summaries to service_role;
 grant select, insert, update, delete on public.athlete_activity_totals to service_role;
 
 create or replace function public.claim_sync_jobs(

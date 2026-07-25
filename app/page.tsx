@@ -1,5 +1,5 @@
-import { PassportApp } from "@/components/passport-app";
+import { RouteStampApp } from "@/components/routestamp-app";
 
 export default function HomePage() {
-  return <PassportApp />;
+  return <RouteStampApp />;
 }

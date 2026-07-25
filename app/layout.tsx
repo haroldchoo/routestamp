@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "STRAVA Passport",
-  description: "A private-by-default athletic travel passport.",
+  title: "RouteStamp",
+  description: "A private-by-default athletic travel RouteStamp.",
   robots: { index: false, follow: false },
 };
 
