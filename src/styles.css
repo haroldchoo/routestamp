@@ -120,7 +120,6 @@ button {
 }
 
 .brand small,
-.profile-block span,
 .sync-block span {
   display: block;
   color: var(--muted);
@@ -132,6 +131,54 @@ button {
   display: flex;
   gap: 6px;
   flex: 1;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 5px 8px 5px 5px;
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.user-menu:hover,
+.user-menu[aria-current] {
+  background: var(--surface-2);
+}
+
+.user-menu-copy {
+  min-width: 0;
+}
+
+.user-menu-copy strong,
+.user-menu-copy small {
+  display: block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.user-menu-copy small {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.avatar-image {
+  flex: 0 0 auto;
+  object-fit: cover;
+  background: var(--surface-2);
 }
 
 .desktop-nav a,
@@ -170,7 +217,6 @@ button {
   background: var(--surface);
 }
 
-.profile-block,
 .sync-block {
   display: flex;
   align-items: center;
@@ -810,6 +856,14 @@ pre {
 
   .brand small {
     display: none;
+  }
+
+  .user-menu-copy {
+    display: none;
+  }
+
+  .topbar-actions {
+    gap: 6px;
   }
 
   .hero {

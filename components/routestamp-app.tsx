@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIcon } from "@/components/activity-icon";
 import { WorldMap } from "@/components/world-map";
 import { buildDashboardSummary, buildRouteStampEntries, filterAndSortRouteStampEntries, formatDate, formatDistance, formatDuration, sportLabel } from "@/lib/domain";
@@ -139,8 +139,6 @@ export function RouteStampApp() {
     toast("Account data deleted.");
   };
 
-  const summary = useMemo(() => buildDashboardSummary(state), [state]);
-
   return (
     <>
       <a className="skip-link" href="#main">Skip to content</a>
@@ -151,14 +149,19 @@ export function RouteStampApp() {
             <span><strong>RouteStamp</strong><small>Private athletic travel journal</small></span>
           </a>
           <Nav className="desktop-nav" route={route} />
-          <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label="Toggle color theme">◐</button>
+          <div className="topbar-actions">
+            <button className="theme-toggle" type="button" onClick={toggleTheme} aria-label="Toggle color theme">◐</button>
+            <a className="user-menu" href="#settings" aria-label={`${state.user.displayName} settings`}>
+              <UserAvatar displayName={state.user.displayName} avatarUrl={state.user.avatarUrl} />
+              <span className="user-menu-copy">
+                <strong>{state.user.displayName}</strong>
+                <small>{state.providerConnected ? "Strava connected" : state.mode === "demo" ? "Demo Mode" : "Strava disconnected"}</small>
+              </span>
+            </a>
+          </div>
         </header>
 
         <aside className="sidebar" aria-label="RouteStamp summary">
-          <div className="profile-block">
-            <div className="avatar" aria-hidden="true">{initials(state.user.displayName)}</div>
-            <div><strong>{state.user.displayName}</strong><span>{summary.countriesVisited} countries unlocked</span></div>
-          </div>
           <div className="sync-block">
             <span className={`status-dot ${state.providerConnected ? "good" : "muted"}`} />
             <div>
@@ -201,6 +204,20 @@ export function RouteStampApp() {
         {notice && <div className="toast">{notice}</div>}
       </div>
     </>
+  );
+}
+
+function UserAvatar({ displayName, avatarUrl }: { displayName: string; avatarUrl: string }) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  if (!avatarUrl || imageFailed) {
+    return <span className="avatar" aria-hidden="true">{initials(displayName)}</span>;
+  }
+
+  return (
+    // Strava supplies this URL as part of the authenticated athlete profile.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img className="avatar avatar-image" src={avatarUrl} alt="" onError={() => setImageFailed(true)} />
   );
 }
 
