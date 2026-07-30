@@ -16,7 +16,6 @@ export async function GET(request: NextRequest) {
 
   if (denied) return redirectWithError(env.appUrl, "Strava access was not approved.");
   if (!expectedState || !returnedState || expectedState !== returnedState) return redirectWithError(env.appUrl, "OAuth state validation failed.");
-  if (!inviteCode) return redirectWithError(env.appUrl, "Invite code validation failed.");
   if (!code) return redirectWithError(env.appUrl, "Strava did not return an authorization code.");
 
   let refreshToken: string | null = null;
@@ -29,7 +28,7 @@ export async function GET(request: NextRequest) {
       await revokeToken(tokens.refresh_token);
       return redirectWithError(env.appUrl, "Private activity access is required for this beta.");
     }
-    const session = await saveOauthConnection(tokens, scopes, inviteCode);
+    const session = await saveOauthConnection(tokens, scopes, inviteCode ?? undefined);
     await setSession(session);
     await createSyncJob(session.athleteId);
     const destination = new URL(env.appUrl);

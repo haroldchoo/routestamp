@@ -1,5 +1,5 @@
 import "server-only";
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { normalizeStravaActivity } from "@/lib/activity-normalizer";
 import { countries, countriesByCode } from "@/lib/countries";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
@@ -32,29 +32,48 @@ export function normalizeInviteCode(code: string) {
   return code.trim().replace(/\s+/g, "").toUpperCase();
 }
 
-export async function saveOauthConnection(tokens: StravaTokenResponse, scopes: string[], inviteCode: string) {
+export async function saveOauthConnection(tokens: StravaTokenResponse, scopes: string[], inviteCode?: string) {
   const db = supabaseAdmin();
-  const invite = await validateInvite(inviteCode, tokens.athlete.id);
   const displayName = [tokens.athlete.firstname, tokens.athlete.lastname].filter(Boolean).join(" ") || tokens.athlete.username || "Athlete";
-  const { data: athlete, error: athleteError } = await db
-    .from("athletes")
-    .upsert({
+  const profile = {
+    display_name: displayName,
+    avatar_url: tokens.athlete.profile ?? "",
+    updated_at: new Date().toISOString(),
+  };
+
+  let athlete: { id: string; strava_athlete_id: number } | null = null;
+  let invite: Awaited<ReturnType<typeof validateInvite>> | null = null;
+
+  if (inviteCode?.trim()) {
+    invite = await validateInvite(inviteCode, tokens.athlete.id);
+    const result = await db.from("athletes").upsert({
       strava_athlete_id: tokens.athlete.id,
-      display_name: displayName,
-      avatar_url: tokens.athlete.profile ?? "",
-      updated_at: new Date().toISOString(),
+      ...profile,
     }, { onConflict: "strava_athlete_id" })
-    .select("id,strava_athlete_id")
-    .single();
-  throwIfError(athleteError);
+      .select("id,strava_athlete_id")
+      .single();
+    throwIfError(result.error);
+    athlete = result.data;
+  } else {
+    const result = await db.from("athletes")
+      .update(profile)
+      .eq("strava_athlete_id", tokens.athlete.id)
+      .select("id,strava_athlete_id")
+      .maybeSingle();
+    throwIfError(result.error);
+    athlete = result.data;
+    if (!athlete) throw new Error("This Strava account has not joined RouteStamp yet. Use a valid invite link first.");
+  }
   if (!athlete) throw new Error("Supabase did not return the saved athlete");
 
-  const { error: acceptError } = await db.from("invites").update({
-    status: "accepted",
-    accepted_athlete_id: athlete.strava_athlete_id,
-    accepted_at: new Date().toISOString(),
-  }).eq("id", invite.id);
-  throwIfError(acceptError);
+  if (invite) {
+    const { error: acceptError } = await db.from("invites").update({
+      status: "accepted",
+      accepted_athlete_id: athlete.strava_athlete_id,
+      accepted_at: new Date().toISOString(),
+    }).eq("id", invite.id);
+    throwIfError(acceptError);
+  }
 
   const { error: connectionError } = await db.from("strava_connections").upsert({
     athlete_id: athlete.id,
@@ -77,6 +96,22 @@ export async function saveOauthConnection(tokens: StravaTokenResponse, scopes: s
   throwIfError(privacyError);
 
   return { athleteId: athlete.id, stravaAthleteId: String(athlete.strava_athlete_id) };
+}
+
+export async function createInvite(expiresInDays = 30) {
+  const safeDays = Number.isFinite(expiresInDays) && expiresInDays > 0 ? Math.min(Math.floor(expiresInDays), 365) : 30;
+  const code = normalizeInviteCode(randomBytes(8).toString("base64url"));
+  const expiresAt = new Date(Date.now() + safeDays * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await supabaseAdmin().from("invites").insert({
+    code_hash: hashInviteCode(code),
+    expires_at: expiresAt,
+  });
+  throwIfError(error);
+  return {
+    code,
+    expiresAt,
+    inviteUrl: `${serverEnv().appUrl}/api/auth/strava?invite=${encodeURIComponent(code)}`,
+  };
 }
 
 export async function validateInvite(inviteCode: string, stravaAthleteId: number) {

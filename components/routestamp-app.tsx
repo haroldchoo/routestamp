@@ -80,10 +80,8 @@ export function RouteStampApp() {
   }, [loadState, state.authenticated, state.syncJob]);
 
   const sync = async () => {
-    if (!state.authenticated) {
-      const inviteCode = window.prompt("Enter your RouteStamp invite code");
-      if (!inviteCode?.trim()) return;
-      window.location.assign(`/api/auth/strava?invite=${encodeURIComponent(inviteCode.trim())}`);
+    if (!state.authenticated || !state.providerConnected) {
+      window.location.assign("/api/auth/strava");
       return;
     }
     setBusy(true);
@@ -98,6 +96,12 @@ export function RouteStampApp() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const joinWithInvite = () => {
+    const inviteCode = window.prompt("Paste your RouteStamp invite code");
+    if (!inviteCode?.trim()) return;
+    window.location.assign(`/api/auth/strava?invite=${encodeURIComponent(inviteCode.trim())}`);
   };
 
   const updatePrivacy = async (next: PrivacySettings) => {
@@ -162,20 +166,13 @@ export function RouteStampApp() {
         </header>
 
         <aside className="sidebar" aria-label="RouteStamp summary">
-          <div className="sync-block">
-            <span className={`status-dot ${state.providerConnected ? "good" : "muted"}`} />
-            <div>
-              <strong>{state.providerConnected ? "Strava connected" : state.mode === "demo" ? "Demo Mode" : "Strava disconnected"}</strong>
-              <span>{syncLabel(state.syncJob)}</span>
-            </div>
-          </div>
           <nav className="side-nav" aria-label="Sections">
             <NavLinks route={route} includePublic />
           </nav>
         </aside>
 
         <main id="main" className="main" tabIndex={-1}>
-          {route === "dashboard" && <Dashboard state={state} busy={busy} onSync={sync} />}
+          {route === "dashboard" && <Dashboard state={state} busy={busy} onSync={sync} onJoinWithInvite={joinWithInvite} />}
           {route === "routestamp" && <RouteStamp state={state} />}
           {route === "map" && <MapView state={state} />}
           {route === "activities" && <Activities state={state} />}
@@ -221,7 +218,7 @@ function UserAvatar({ displayName, avatarUrl }: { displayName: string; avatarUrl
   );
 }
 
-function Dashboard({ state, busy, onSync }: { state: AppState; busy: boolean; onSync: () => void }) {
+function Dashboard({ state, busy, onSync, onJoinWithInvite }: { state: AppState; busy: boolean; onSync: () => void; onJoinWithInvite: () => void }) {
   const summary = buildDashboardSummary(state);
   return (
     <>
@@ -236,7 +233,10 @@ function Dashboard({ state, busy, onSync }: { state: AppState; busy: boolean; on
                 {busy ? "Syncing..." : activeSyncLabel(state.syncJob)}
               </button>
             ) : (
-              <button className="button primary" type="button" onClick={onSync}>Connect Strava</button>
+              <>
+                <button className="button primary" type="button" onClick={onSync}>Sign In with Strava</button>
+                <button className="button secondary" type="button" onClick={onJoinWithInvite}>Join with Invite</button>
+              </>
             )}
             <a className="button secondary" href="#privacy">Privacy Center</a>
           </div>
@@ -400,12 +400,52 @@ function Settings({ state, busy, onSync, onDisconnect, onDelete }: { state: AppS
     <>
       <PageTitle title="Settings" copy="Manage the private connection, export, disconnect, and account deletion controls." />
       <section className="settings-grid">
-        <div className="settings-panel"><h2>Connected app</h2><p>{state.providerConnected ? "Strava connection is active." : "Connect Strava to import your account."}</p><button className="button primary" type="button" onClick={onSync} disabled={busy || (state.authenticated && !state.providerConnected)}>{state.authenticated ? "Manual Sync" : "Connect Strava"}</button><SyncProgress job={state.syncJob} /></div>
+        <div className="settings-panel"><h2>Connected app</h2><p>{state.providerConnected ? "Strava connection is active." : "Reconnect Strava without an invite code."}</p><button className="button primary" type="button" onClick={onSync} disabled={busy}>{state.providerConnected ? "Manual Sync" : state.authenticated ? "Reconnect Strava" : "Sign In with Strava"}</button><SyncProgress job={state.syncJob} /></div>
+        <FriendInvitePanel authenticated={state.authenticated} />
         <div className="settings-panel"><h2>Export</h2><p>Download profile, RouteStamp, summaries, privacy settings, and safe connection metadata.</p><a className="button secondary" href={state.authenticated ? "/api/export" : undefined} aria-disabled={!state.authenticated}>Export Data</a></div>
         <div className="settings-panel danger"><h2>Disconnect Strava</h2><p>Revoke provider access while retaining imported summaries.</p><button className="button destructive" type="button" disabled={!state.providerConnected || busy} onClick={onDisconnect}>Disconnect</button></div>
         <div className="settings-panel danger"><h2>Delete account</h2><p>Revoke access and permanently delete all private-beta records.</p><button className="button destructive" type="button" disabled={!state.authenticated || busy} onClick={onDelete}>Delete Account</button></div>
       </section>
     </>
+  );
+}
+
+function FriendInvitePanel({ authenticated }: { authenticated: boolean }) {
+  const [inviteUrl, setInviteUrl] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [inviteNotice, setInviteNotice] = useState<string | null>(null);
+
+  const createFriendInvite = async () => {
+    setCreating(true);
+    setInviteNotice(null);
+    try {
+      const response = await fetch("/api/invites", { method: "POST" });
+      const body = await response.json() as { inviteUrl?: string; error?: string };
+      if (!response.ok || !body.inviteUrl) throw new Error(body.error ?? `Request failed (${response.status})`);
+      setInviteUrl(body.inviteUrl);
+      try {
+        await navigator.clipboard.writeText(body.inviteUrl);
+        setInviteNotice("Invite link created and copied.");
+      } catch {
+        setInviteNotice("Invite link created. Copy it below.");
+      }
+    } catch (error) {
+      setInviteNotice(error instanceof Error ? error.message : "Unable to create invite.");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="settings-panel">
+      <h2>Invite a friend</h2>
+      <p>Create a one-time invite link. It expires after 30 days.</p>
+      <button className="button secondary" type="button" disabled={!authenticated || creating} onClick={() => void createFriendInvite()}>
+        {creating ? "Creating..." : "Create & Copy Invite"}
+      </button>
+      {inviteUrl && <code className="invite-link">{inviteUrl}</code>}
+      {inviteNotice && <small className="helper" role="status">{inviteNotice}</small>}
+    </div>
   );
 }
 
@@ -430,6 +470,5 @@ function SyncProgress({ job }: { job: SyncJob }) { if (!["pending", "running", "
 
 function initials(name: string) { return name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase(); }
 function privacyLabel(key: string) { return key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase()); }
-function syncLabel(job: SyncJob) { if (job.status === "completed") return "Last sync complete"; if (job.status === "pending") return "Sync queued"; if (job.status === "running") return `${job.processed} activities processed`; if (job.status === "rate_limited") return "Sync paused by rate limit"; if (job.status === "failed") return "Last sync failed - retryable"; return "Sync ready"; }
 function activeSyncLabel(job: SyncJob) { return ["pending", "running", "rate_limited"].includes(job.status) ? "Continue Sync" : "Manual Sync"; }
 async function responseMessage(response: Response) { try { const body = await response.json() as { error?: string }; return body.error ?? `Request failed (${response.status})`; } catch { return `Request failed (${response.status})`; } }

@@ -126,3 +126,14 @@ input:disabled {
 .admin-result small {
   color: var(--muted);
 }
+
+.invite-link {
+  display: block;
+  margin-top: 14px;
+  overflow-wrap: anywhere;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+}
