@@ -281,6 +281,14 @@ button {
   flex-wrap: wrap;
 }
 
+.share-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0;
+  flex-wrap: wrap;
+}
+
 .button {
   min-height: 42px;
   border-radius: var(--radius);
@@ -498,6 +506,7 @@ select.chip {
 
 .stamp-card {
   padding: 18px;
+  text-align: center;
 }
 
 .stamp-card.locked {
@@ -505,48 +514,26 @@ select.chip {
 }
 
 .stamp {
-  aspect-ratio: 1.35;
-  border: 3px double var(--primary);
-  border-radius: 46% 54% 50% 44%;
+  width: 58px;
+  height: 58px;
   display: grid;
   place-items: center;
-  margin-bottom: 16px;
-  color: var(--primary);
-  transform: rotate(-3deg);
-  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  margin: 0 auto 8px;
+  transform: none;
 }
 
 .stamp span {
-  font-size: 32px;
-}
-
-.stamp strong {
-  font-size: 30px;
-}
-
-.stamp small {
-  color: inherit;
-  font-weight: 700;
-}
-
-.classic-1 {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.classic-2 {
-  border-color: var(--success);
-  color: var(--success);
-}
-
-.classic-3 {
-  border-color: var(--warning);
-  color: var(--warning);
+  font-size: 44px;
+  line-height: 1;
 }
 
 .locked-stamp {
-  border-color: var(--muted);
-  color: var(--muted);
+  filter: grayscale(1);
+  opacity: 0.68;
+}
+
+.stamp-card .badge-row {
+  justify-content: center;
 }
 
 .badge {
@@ -726,10 +713,6 @@ th {
   width: 42px;
   height: 24px;
   accent-color: var(--primary);
-}
-
-.public-url {
-  overflow-wrap: anywhere;
 }
 
 pre {

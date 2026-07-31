@@ -8,9 +8,9 @@ import type { RouteStampSort } from "@/lib/domain";
 import { createDemoState } from "@/lib/demo";
 import type { ActivityPage, ActivitySummary, AppState, Country, RouteStampEntry, PrivacySettings, SyncJob } from "@/lib/types";
 
-type RouteName = "dashboard" | "routestamp" | "map" | "activities" | "privacy" | "public" | "settings";
+type RouteName = "dashboard" | "routestamp" | "map" | "activities" | "privacy" | "settings";
 
-const routes = new Set<RouteName>(["dashboard", "routestamp", "map", "activities", "privacy", "public", "settings"]);
+const routes = new Set<RouteName>(["dashboard", "routestamp", "map", "activities", "privacy", "settings"]);
 
 export function RouteStampApp() {
   const [state, setState] = useState<AppState>(() => createDemoState());
@@ -167,7 +167,7 @@ export function RouteStampApp() {
 
         <aside className="sidebar" aria-label="RouteStamp summary">
           <nav className="side-nav" aria-label="Sections">
-            <NavLinks route={route} includePublic />
+            <NavLinks route={route} />
           </nav>
         </aside>
 
@@ -177,7 +177,6 @@ export function RouteStampApp() {
           {route === "map" && <MapView state={state} />}
           {route === "activities" && <Activities state={state} />}
           {route === "privacy" && <Privacy state={state} onChange={updatePrivacy} />}
-          {route === "public" && <PrivateBetaNotice />}
           {route === "settings" && (
             <Settings
               state={state}
@@ -289,6 +288,7 @@ function RouteStamp({ state }: { state: AppState }) {
   return (
     <>
       <PageTitle title="RouteStamp" copy="Collected country stamps from your endurance activity history." />
+      <ShareRouteStampButton />
       <div className="toolbar" role="toolbar" aria-label="RouteStamp filters">
         <select className="chip" aria-label="Country status" value={scope} onChange={(event) => setScope(event.target.value as "unlocked" | "all")}>
           <option value="unlocked">Unlocked</option>
@@ -314,6 +314,35 @@ function RouteStamp({ state }: { state: AppState }) {
         <section className="empty-state route-stamp-empty"><h2>No matching stamps</h2><p>Choose another sport to see countries from those activities.</p></section>
       )}
     </>
+  );
+}
+
+function ShareRouteStampButton() {
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const share = async () => {
+    const url = new URL(window.location.href);
+    url.search = "";
+    url.hash = "routestamp";
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "My RouteStamp", text: "My RouteStamp passport", url: url.toString() });
+        setNotice("RouteStamp link ready to share.");
+      } else {
+        await navigator.clipboard.writeText(url.toString());
+        setNotice("RouteStamp link copied.");
+      }
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setNotice("Unable to share the RouteStamp link.");
+    }
+  };
+
+  return (
+    <div className="share-row">
+      <button className="button secondary" type="button" onClick={() => void share()}>Share RouteStamp</button>
+      {notice && <small className="helper" role="status">{notice}</small>}
+    </div>
   );
 }
 
@@ -380,19 +409,13 @@ function Privacy({ state, onChange }: { state: AppState; onChange: (settings: Pr
   };
   return (
     <>
-      <PageTitle title="Privacy Center" copy="Your real-data beta remains private while you review imported results." />
+      <PageTitle title="Privacy & sharing" copy="Choose which profile and RouteStamp details are included when you share this page." />
       <section className="settings-grid">
-        <div className="settings-panel"><h2>Public RouteStamp</h2><Toggle label="Enable public RouteStamp" checked={false} disabled /><p className="helper">Public sharing is disabled for this beta at both the UI and API layers.</p></div>
-        <div className="settings-panel"><h2>Future public fields</h2>{Object.entries(settings.visibility).map(([key, value]) => <Toggle key={key} label={privacyLabel(key)} checked={value} disabled={!state.authenticated} onChange={(checked) => changeVisibility(key as keyof PrivacySettings["visibility"], checked)} />)}</div>
-        <div className="settings-panel"><h2>Discovery</h2><Toggle label="Discoverable inside app" checked={false} disabled /><Toggle label="Allow search indexing" checked={false} disabled /></div>
-        <div className="settings-panel accent"><h2>Current public projection</h2><pre>{JSON.stringify({ disabled: true, reason: "private_beta" }, null, 2)}</pre></div>
+        <div className="settings-panel"><h2>Shared RouteStamp fields</h2>{Object.entries(settings.visibility).map(([key, value]) => <Toggle key={key} label={privacyLabel(key)} checked={value} disabled={!state.authenticated} onChange={(checked) => changeVisibility(key as keyof PrivacySettings["visibility"], checked)} />)}</div>
+        <div className="settings-panel"><h2>How sharing works</h2><p>RouteStamp is the share surface. Use the Share button on the RouteStamp page to send its link, just like an AMEX Passport page.</p><a className="button secondary" href="#routestamp">Open RouteStamp</a></div>
       </section>
     </>
   );
-}
-
-function PrivateBetaNotice() {
-  return <><PageTitle title="Public RouteStamp" copy="Public sharing is unavailable during the private beta." /><section className="empty-state"><h2>No real data is public</h2><p>Review country resolution and imported totals before a public projection is introduced.</p><a className="button primary" href="#privacy">Open Privacy Center</a></section></>;
 }
 
 function Settings({ state, busy, onSync, onDisconnect, onDelete }: { state: AppState; busy: boolean; onSync: () => void; onDisconnect: () => void; onDelete: () => void }) {
@@ -453,8 +476,8 @@ function Nav({ className, route }: { className: string; route: RouteName }) {
   return <nav className={className} aria-label="Primary"><NavLinks route={route} /></nav>;
 }
 
-function NavLinks({ route, includePublic = false }: { route: RouteName; includePublic?: boolean }) {
-  const items: Array<[RouteName, string]> = [["dashboard", "Dashboard"], ["routestamp", "RouteStamp"], ["map", "Map"], ["activities", "Activities"], ["privacy", "Privacy Center"], ...(includePublic ? [["public", "Public RouteStamp"] as [RouteName, string]] : []), ["settings", "Settings"]];
+function NavLinks({ route }: { route: RouteName }) {
+  const items: Array<[RouteName, string]> = [["dashboard", "Dashboard"], ["routestamp", "RouteStamp"], ["map", "Map"], ["activities", "Activities"], ["privacy", "Privacy & sharing"], ["settings", "Settings"]];
   return <>{items.map(([key, label]) => <a key={key} href={`#${key}`} aria-current={route === key ? "page" : undefined}>{label}</a>)}</>;
 }
 
@@ -463,8 +486,8 @@ function Metric({ label, value, detail }: { label: string; value: string | numbe
 function SectionHeading({ title, href, label }: { title: string; href: string; label: string }) { return <div className="section-heading"><h2>{title}</h2><a className="text-link" href={href}>{label}</a></div>; }
 function CountryRow({ entry }: { entry: RouteStampEntry }) { return <article className="row-card"><span className="flag">{entry.country.flag}</span><div><strong>{entry.country.name}</strong><small>{entry.activityCount} activities · {formatDistance(entry.totalDistanceMeters)}</small></div><span>{formatDate(entry.lastVisitedAt)}</span></article>; }
 function ActivityRow({ activity, countries }: { activity: ActivitySummary; countries: Country[] }) { const country = activity.countryCode ? countries.find((item) => item.code === activity.countryCode) : null; return <article className="row-card"><span className="sport"><ActivityIcon sportType={activity.sportType} /></span><div><strong>{activity.name}</strong><small>{country ? `${country.flag} ${country.name}` : "Country unresolved"} · {sportLabel(activity.sportType)}</small></div><span>{formatDistance(activity.distanceMeters)}</span></article>; }
-function StampCard({ entry }: { entry: RouteStampEntry }) { return <article className="stamp-card"><div className={`stamp ${entry.stamp.variant}`}><span>{entry.country.flag}</span><strong>{entry.country.code}</strong><small>{formatDate(entry.firstVisitedAt)}</small></div><h2>{entry.country.name}</h2><p>{entry.activityCount} activities · {formatDistance(entry.totalDistanceMeters)}</p><div className="badge-row">{entry.sportTypes.map((sport) => <span className="badge sport-label" key={sport}><ActivityIcon sportType={sport} size={14} />{sportLabel(sport)}</span>)}</div></article>; }
-function LockedStampCard({ country }: { country: Country }) { return <article className="stamp-card locked"><div className="stamp locked-stamp"><span>{country.flag}</span><strong>{country.code}</strong><small>Locked</small></div><h2>{country.name}</h2><p>No activities imported yet.</p></article>; }
+function StampCard({ entry }: { entry: RouteStampEntry }) { return <article className="stamp-card"><div className={`stamp ${entry.stamp.variant}`} aria-hidden="true"><span>{entry.country.flag}</span></div><h2>{entry.country.name}</h2><p>{entry.activityCount} activities · {formatDistance(entry.totalDistanceMeters)}</p><div className="badge-row">{entry.sportTypes.map((sport) => <span className="badge sport-label" key={sport}><ActivityIcon sportType={sport} size={14} />{sportLabel(sport)}</span>)}</div></article>; }
+function LockedStampCard({ country }: { country: Country }) { return <article className="stamp-card locked"><div className="stamp locked-stamp" aria-hidden="true"><span>{country.flag}</span></div><h2>{country.name}</h2><p>No activities imported yet.</p></article>; }
 function Toggle({ label, checked, disabled = false, onChange }: { label: string; checked: boolean; disabled?: boolean; onChange?: (value: boolean) => void }) { return <label className="toggle"><span>{label}</span><input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange?.(event.target.checked)} /></label>; }
 function SyncProgress({ job }: { job: SyncJob }) { if (!["pending", "running", "rate_limited"].includes(job.status)) return null; return <div className="sync-progress"><progress max={Math.max(job.processed + 200, 200)} value={job.processed} /><small>{job.status === "pending" ? "Queued for server sync" : job.status === "rate_limited" ? `Paused for ${job.retryAfterSeconds ?? "a few"} seconds` : `${job.processed} activities processed`}</small></div>; }
 
