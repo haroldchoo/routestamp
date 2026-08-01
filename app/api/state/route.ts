@@ -10,7 +10,8 @@ export async function GET() {
   if (!session) return NextResponse.json(createDemoState());
   try {
     return NextResponse.json(await loadAppState(session.athleteId));
-  } catch {
+  } catch (error) {
+    console.error("Unable to load private account state", error);
     return NextResponse.json({ error: "Unable to load private account state" }, { status: 500 });
   }
 }

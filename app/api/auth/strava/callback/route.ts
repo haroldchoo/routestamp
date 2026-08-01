@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { serverEnv } from "@/lib/env";
+import { verifyOauthState } from "@/lib/oauth-state";
 import { createSyncJob, saveOauthConnection } from "@/lib/repository";
 import { consumeOauthInviteCode, consumeOauthState, setSession } from "@/lib/session";
 import { exchangeAuthorizationCode, revokeToken } from "@/lib/strava";
@@ -9,13 +10,14 @@ export const runtime = "nodejs";
 export async function GET(request: NextRequest) {
   const env = serverEnv();
   const expectedState = await consumeOauthState();
-  const inviteCode = await consumeOauthInviteCode();
   const returnedState = request.nextUrl.searchParams.get("state");
+  const statePayload = verifyOauthState(returnedState);
+  const inviteCode = (await consumeOauthInviteCode()) ?? statePayload?.inviteCode ?? null;
   const code = request.nextUrl.searchParams.get("code");
   const denied = request.nextUrl.searchParams.get("error");
 
   if (denied) return redirectWithError(env.appUrl, "Strava access was not approved.");
-  if (!expectedState || !returnedState || expectedState !== returnedState) return redirectWithError(env.appUrl, "OAuth state validation failed.");
+  if (!statePayload || (expectedState && expectedState !== returnedState)) return redirectWithError(env.appUrl, "OAuth state validation failed.");
   if (!code) return redirectWithError(env.appUrl, "Strava did not return an authorization code.");
 
   let refreshToken: string | null = null;

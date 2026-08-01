@@ -213,6 +213,7 @@ export async function markJobRunning(athleteId: string, jobId: string) {
 
 export async function recordSyncPage(athleteId: string, jobId: string, activities: StravaActivity[], page: number) {
   const db = supabaseAdmin();
+  const supportsRegionColumns = await hasRegionColumns();
   const { data: currentJob, error: currentJobError } = await db
     .from("sync_jobs")
     .select("processed,imported,updated")
@@ -230,7 +231,7 @@ export async function recordSyncPage(athleteId: string, jobId: string, activitie
 
   const rows = activities.map((activity) => {
     const normalized = normalizeStravaActivity(activity);
-    return {
+    const row = {
       athlete_id: athleteId,
       provider_activity_id: activity.id,
       name: normalized.name,
@@ -244,16 +245,19 @@ export async function recordSyncPage(athleteId: string, jobId: string, activitie
       commute: normalized.flags.commute,
       trainer: normalized.flags.trainer,
       country_code: normalized.countryCode,
-      region_code: normalized.regionCode,
       geographic_resolution_status: normalized.geographicResolutionStatus,
-      region_resolution_status: normalized.regionResolutionStatus,
       last_seen_sync_id: jobId,
       fetched_at: new Date().toISOString(),
     };
+    return supportsRegionColumns ? {
+      ...row,
+      region_code: normalized.regionCode,
+      region_resolution_status: normalized.regionResolutionStatus,
+    } : row;
   });
 
   if (rows.length) {
-    const { error: upsertError } = await db.from("activities").upsert(rows, { onConflict: "athlete_id,provider_activity_id" });
+    const { error: upsertError } = await db.from("activities").upsert(rows as never[], { onConflict: "athlete_id,provider_activity_id" });
     throwIfError(upsertError);
   }
 
@@ -446,22 +450,24 @@ async function refreshDerivedActivityData(athleteId: string) {
     })));
     throwIfError(summaryError);
   }
-  const { error: regionDeleteError } = await db.from("passport_region_summaries").delete().eq("athlete_id", athleteId);
-  throwIfError(regionDeleteError);
-  if (regionEntries.length) {
-    const { error: regionSummaryError } = await db.from("passport_region_summaries").insert(regionEntries.map((entry) => ({
-      athlete_id: athleteId,
-      region_code: entry.region.code,
-      first_visited_at: entry.firstVisitedAt,
-      last_visited_at: entry.lastVisitedAt,
-      activity_count: entry.activityCount,
-      total_distance_meters: entry.totalDistanceMeters,
-      total_moving_time_seconds: entry.totalMovingTimeSeconds,
-      total_elevation_gain_meters: entry.totalElevationGainMeters,
-      sport_types: entry.sportTypes,
-      updated_at: new Date().toISOString(),
-    })));
-    throwIfError(regionSummaryError);
+  if (await hasRegionSummaryTable()) {
+    const { error: regionDeleteError } = await db.from("passport_region_summaries").delete().eq("athlete_id", athleteId);
+    throwIfError(regionDeleteError);
+    if (regionEntries.length) {
+      const { error: regionSummaryError } = await db.from("passport_region_summaries").insert(regionEntries.map((entry) => ({
+        athlete_id: athleteId,
+        region_code: entry.region.code,
+        first_visited_at: entry.firstVisitedAt,
+        last_visited_at: entry.lastVisitedAt,
+        activity_count: entry.activityCount,
+        total_distance_meters: entry.totalDistanceMeters,
+        total_moving_time_seconds: entry.totalMovingTimeSeconds,
+        total_elevation_gain_meters: entry.totalElevationGainMeters,
+        sport_types: entry.sportTypes,
+        updated_at: new Date().toISOString(),
+      })));
+      throwIfError(regionSummaryError);
+    }
   }
   const { error: totalsError } = await db.from("athlete_activity_totals").upsert({
     athlete_id: athleteId,
@@ -527,7 +533,10 @@ async function readRegionEntries(athleteId: string): Promise<RegionEntry[]> {
     .select("*")
     .eq("athlete_id", athleteId)
     .order("region_code", { ascending: true });
-  throwIfError(error);
+  if (error) {
+    if (isMissingRegionSchemaError(error)) return [];
+    throwIfError(error);
+  }
   return (data ?? []).map((row) => {
     const region = regionsByCode.get(String(row.region_code));
     if (!region) return null;
@@ -542,6 +551,28 @@ async function readRegionEntries(athleteId: string): Promise<RegionEntry[]> {
       sportTypes: Array.isArray(row.sport_types) ? row.sport_types.map(String).sort() : [],
     } satisfies RegionEntry;
   }).filter((entry): entry is RegionEntry => Boolean(entry));
+}
+
+async function hasRegionColumns() {
+  const { error } = await supabaseAdmin().from("activities").select("region_code,region_resolution_status").limit(1);
+  if (!error) return true;
+  if (isMissingRegionSchemaError(error)) return false;
+  throwIfError(error);
+  return false;
+}
+
+async function hasRegionSummaryTable() {
+  const { error } = await supabaseAdmin().from("passport_region_summaries").select("region_code").limit(1);
+  if (!error) return true;
+  if (isMissingRegionSchemaError(error)) return false;
+  throwIfError(error);
+  return false;
+}
+
+function isMissingRegionSchemaError(error: { code?: string; message?: string } | null) {
+  if (!error) return false;
+  return ["42P01", "PGRST204", "PGRST205"].includes(error.code ?? "")
+    || /passport_region_summaries|region_code|region_resolution_status/i.test(error.message ?? "");
 }
 
 async function readRecentActivities(athleteId: string) {

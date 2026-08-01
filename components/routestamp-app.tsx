@@ -10,13 +10,14 @@ import type { RouteStampSort } from "@/lib/domain";
 import { createDemoState } from "@/lib/demo";
 import type { ActivityPage, ActivitySummary, AppState, Country, RegionEntry, RouteStampEntry, PrivacySettings, SyncJob } from "@/lib/types";
 
-type RouteName = "dashboard" | "routestamp" | "regions" | "map" | "activities" | "settings" | "settings/privacy";
+type RouteName = "dashboard" | "routestamp" | "regions" | "map" | "country" | "activities" | "settings" | "settings/privacy";
 
-const routes = new Set<RouteName>(["dashboard", "routestamp", "regions", "map", "activities", "settings", "settings/privacy"]);
+const routes = new Set<RouteName>(["dashboard", "routestamp", "regions", "map", "country", "activities", "settings", "settings/privacy"]);
 
 export function RouteStampApp() {
   const [state, setState] = useState<AppState>(() => createDemoState());
   const [route, setRoute] = useState<RouteName>("dashboard");
+  const [countryCode, setCountryCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -33,7 +34,14 @@ export function RouteStampApp() {
 
   useEffect(() => {
     const readRoute = () => {
-      const candidate = window.location.hash.replace("#", "") as RouteName;
+      const hash = window.location.hash.slice(1);
+      if (hash.startsWith("country/")) {
+        setCountryCode(hash.slice("country/".length).toUpperCase());
+        setRoute("country");
+        return;
+      }
+      setCountryCode(null);
+      const candidate = hash as RouteName;
       setRoute(routes.has(candidate) ? candidate : "dashboard");
     };
     readRoute();
@@ -172,6 +180,7 @@ export function RouteStampApp() {
           {route === "routestamp" && <RouteStamp state={state} />}
           {route === "regions" && <Regions state={state} />}
           {route === "map" && <MapView state={state} />}
+          {route === "country" && <CountryDetail state={state} countryCode={countryCode} />}
           {route === "activities" && <Activities state={state} />}
           {route === "settings/privacy" && <Privacy state={state} onChange={updatePrivacy} />}
           {route === "settings" && (
@@ -188,7 +197,6 @@ export function RouteStampApp() {
         <nav className="bottom-nav" aria-label="Primary mobile">
           <a href="#dashboard" aria-current={route === "dashboard" ? "page" : undefined}>Home</a>
           <a href="#routestamp" aria-current={route === "routestamp" ? "page" : undefined}>RouteStamp</a>
-          <a href="#regions" aria-current={route === "regions" ? "page" : undefined}>Regions</a>
           <a href="#map" aria-current={route === "map" ? "page" : undefined}>Map</a>
           <a href="#activities" aria-current={route === "activities" ? "page" : undefined}>Log</a>
           <a href="#settings" aria-current={route === "settings" || route === "settings/privacy" ? "page" : undefined}>Settings</a>
@@ -231,7 +239,7 @@ function Dashboard({ state, busy, onSync, onJoinWithInvite }: { state: AppState;
               </button>
             ) : (
               <>
-                <button className="button primary" type="button" onClick={onSync}>Sign In with Strava</button>
+                <a className="button primary" href="/api/auth/strava">Sign In with Strava</a>
                 <button className="button secondary" type="button" onClick={onJoinWithInvite}>Join with Invite</button>
               </>
             )}
@@ -373,8 +381,48 @@ function MapView({ state }: { state: AppState }) {
     <>
       <PageTitle title="Map" copy="A generalized country map for exploration. Exact activity coordinates are not retained." />
       <section className="map-layout">
-        <WorldMap entries={entries} />
+        <WorldMap entries={entries} onCountrySelect={(code) => { window.location.hash = `country/${code}`; }} />
         <div className="map-panel"><h2>Visited countries</h2><p>Country summaries are derived server-side and contain no activity coordinates.</p><div className="country-list compact">{entries.map((entry) => <CountryRow key={entry.country.code} entry={entry} />)}</div></div>
+      </section>
+    </>
+  );
+}
+
+function CountryDetail({ state, countryCode }: { state: AppState; countryCode: string | null }) {
+  const country = state.countries.find((item) => item.code === countryCode);
+  const countryEntry = buildRouteStampEntries(state).find((entry) => entry.country.code === countryCode);
+  if (!country) {
+    return <><PageTitle title="Country not found" copy="That country is not available in this passport." /><a className="text-link" href="#map">← Back to Map</a></>;
+  }
+
+  if (country.code !== "US") {
+    return (
+      <>
+        <a className="text-link" href="#map">← Back to Map</a>
+        <PageTitle title={`${country.flag} ${country.name}`} copy="Country-level RouteStamp details are available here. Region tracking is currently available for the United States." />
+        {countryEntry ? <section className="metric-grid" aria-label={`${country.name} summary`}>
+          <Metric label="Activities" value={countryEntry.activityCount} detail="Activities in this country" />
+          <Metric label="Distance" value={formatDistance(countryEntry.totalDistanceMeters)} detail="Total distance" />
+          <Metric label="Last visit" value={formatDate(countryEntry.lastVisitedAt)} detail="Most recent activity" />
+          <Metric label="Sports" value={countryEntry.sportTypes.length} detail="Sport types" />
+        </section> : <section className="empty-state"><h2>No country stamp yet</h2><p>This country has not been unlocked by an imported activity.</p></section>}
+      </>
+    );
+  }
+
+  const visited = new Map(state.regionEntries.map((entry) => [entry.region.code, entry]));
+  return (
+    <>
+      <a className="text-link" href="#map">← Back to Map</a>
+      <PageTitle title="🇺🇸 United States" copy="State-level activity coverage from your US RouteStamp visits." />
+      <section className="metric-grid" aria-label="United States summary">
+        <Metric label="States visited" value={state.regionEntries.length} detail={`of ${usRegions.length} supported regions`} />
+        <Metric label="Activities" value={countryEntry?.activityCount ?? 0} detail="Activities in the United States" />
+        <Metric label="Distance" value={formatDistance(countryEntry?.totalDistanceMeters ?? 0)} detail="Total distance" />
+        <Metric label="Last visit" value={countryEntry ? formatDate(countryEntry.lastVisitedAt) : "—"} detail="Most recent US activity" />
+      </section>
+      <section className="region-grid" aria-label="United States states and district">
+        {usRegions.map((region) => <RegionCard key={region.code} entry={visited.get(region.code)} regionName={region.name} shortCode={region.shortCode} />)}
       </section>
     </>
   );
@@ -443,7 +491,7 @@ function Settings({ state, busy, onSync, onDisconnect, onDelete }: { state: AppS
     <>
       <PageTitle title="Settings" copy="Manage the private connection, export, disconnect, and account deletion controls." />
       <section className="settings-grid">
-        <div className="settings-panel"><h2>Connected app</h2><p>{state.providerConnected ? "Strava connection is active." : "Reconnect Strava without an invite code."}</p><button className="button primary" type="button" onClick={onSync} disabled={busy}>{state.providerConnected ? "Manual Sync" : state.authenticated ? "Reconnect Strava" : "Sign In with Strava"}</button><SyncProgress job={state.syncJob} /></div>
+        <div className="settings-panel"><h2>Connected app</h2><p>{state.providerConnected ? "Strava connection is active." : state.authenticated ? "Reconnect Strava without an invite code." : "Connect Strava to import your activities."}</p>{state.authenticated ? <button className="button primary" type="button" onClick={onSync} disabled={busy}>{state.providerConnected ? "Manual Sync" : "Reconnect Strava"}</button> : <a className="button primary" href="/api/auth/strava">Sign In with Strava</a>}<SyncProgress job={state.syncJob} /></div>
         <FriendInvitePanel authenticated={state.authenticated} />
         <div className="settings-panel"><h2>Privacy Settings</h2><p>Choose which profile and RouteStamp details are included when you share your page.</p><a className="button secondary" href="#settings/privacy">Open Privacy Settings</a></div>
         <div className="settings-panel"><h2>Export</h2><p>Download profile, RouteStamp, summaries, privacy settings, and safe connection metadata.</p><a className="button secondary" href={state.authenticated ? "/api/export" : undefined} aria-disabled={!state.authenticated}>Export Data</a></div>
@@ -498,7 +546,7 @@ function Nav({ className, route }: { className: string; route: RouteName }) {
 }
 
 function NavLinks({ route }: { route: RouteName }) {
-  const items: Array<[RouteName, string]> = [["dashboard", "Dashboard"], ["routestamp", "RouteStamp"], ["regions", "Regions"], ["map", "Map"], ["activities", "Activities"], ["settings", "Settings"]];
+  const items: Array<[RouteName, string]> = [["dashboard", "Dashboard"], ["routestamp", "RouteStamp"], ["map", "Map"], ["activities", "Activities"], ["settings", "Settings"]];
   return <>{items.map(([key, label]) => <a key={key} href={`#${key}`} aria-current={route === key ? "page" : undefined}>{label}</a>)}</>;
 }
 
@@ -508,7 +556,7 @@ function SectionHeading({ title, href, label }: { title: string; href: string; l
 function CountryRow({ entry }: { entry: RouteStampEntry }) { return <article className="row-card"><span className="flag">{entry.country.flag}</span><div><strong>{entry.country.name}</strong><small>{entry.activityCount} activities · {formatDistance(entry.totalDistanceMeters)}</small></div><span>{formatDate(entry.lastVisitedAt)}</span></article>; }
 function ActivityRow({ activity, countries }: { activity: ActivitySummary; countries: Country[] }) { const country = activity.countryCode ? countries.find((item) => item.code === activity.countryCode) : null; return <article className="row-card"><span className="sport"><ActivityIcon sportType={activity.sportType} /></span><div><strong>{activity.name}</strong><small>{country ? `${country.flag} ${country.name}` : "Country unresolved"} · {sportLabel(activity.sportType)}</small></div><span>{formatDistance(activity.distanceMeters)}</span></article>; }
 function RegionCard({ entry, regionName, shortCode }: { entry: RegionEntry | undefined; regionName: string; shortCode: string }) { return <article className={`region-card${entry ? " visited" : ""}`}><div className="region-card-heading"><span className="region-code">{shortCode}</span><div><h2>{regionName}</h2><small>{entry ? `${entry.activityCount} activities · ${formatDistance(entry.totalDistanceMeters)}` : "Not visited yet"}</small></div></div>{entry && <p>Last visit {formatDate(entry.lastVisitedAt)}</p>}</article>; }
-function StampCard({ entry }: { entry: RouteStampEntry }) { return <article className="stamp-card"><div className={`stamp ${entry.stamp.variant}`} aria-hidden="true"><span>{entry.country.flag}</span></div><h2>{entry.country.name}</h2><p>{entry.activityCount} activities · {formatDistance(entry.totalDistanceMeters)}</p><div className="badge-row">{entry.sportTypes.map((sport) => <span className="badge sport-label" key={sport}><ActivityIcon sportType={sport} size={14} />{sportLabel(sport)}</span>)}</div></article>; }
+function StampCard({ entry }: { entry: RouteStampEntry }) { return <article className="stamp-card"><div className={`stamp ${entry.stamp.variant}`} aria-hidden="true"><span>{entry.country.flag}</span></div><h2>{entry.country.name}</h2><p>{entry.activityCount} activities · {formatDistance(entry.totalDistanceMeters)}</p><div className="badge-row">{entry.sportTypes.map((sport) => <span className="badge sport-label" key={sport}><ActivityIcon sportType={sport} size={14} />{sportLabel(sport)}</span>)}</div><a className="text-link stamp-card-link" href={`#country/${entry.country.code}`}>{entry.country.code === "US" ? "View US states" : "View country details"}</a></article>; }
 function LockedStampCard({ country }: { country: Country }) { return <article className="stamp-card locked"><div className="stamp locked-stamp" aria-hidden="true"><span>{country.flag}</span></div><h2>{country.name}</h2><p>No activities imported yet.</p></article>; }
 function Toggle({ label, checked, disabled = false, onChange }: { label: string; checked: boolean; disabled?: boolean; onChange?: (value: boolean) => void }) { return <label className="toggle"><span>{label}</span><input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange?.(event.target.checked)} /></label>; }
 function SyncProgress({ job }: { job: SyncJob }) { if (!["pending", "running", "rate_limited"].includes(job.status)) return null; return <div className="sync-progress"><progress max={Math.max(job.processed + 200, 200)} value={job.processed} /><small>{job.status === "pending" ? "Queued for server sync" : job.status === "rate_limited" ? `Paused for ${job.retryAfterSeconds ?? "a few"} seconds` : `${job.processed} activities processed`}</small></div>; }
