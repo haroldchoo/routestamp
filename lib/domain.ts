@@ -1,4 +1,5 @@
-import type { ActivitySummary, AppState, DashboardSummary, RouteStampEntry } from "@/lib/types";
+import { regionsByCode } from "@/lib/regions";
+import type { ActivitySummary, AppState, DashboardSummary, RegionEntry, RouteStampEntry } from "@/lib/types";
 
 export type RouteStampSort = "latest" | "earliest" | "country" | "activities";
 
@@ -34,6 +35,36 @@ export function buildRouteStampEntries(state: Pick<AppState, "countries"> & { ac
     })
     .filter((entry): entry is RouteStampEntry => Boolean(entry))
     .sort((a, b) => a.country.name.localeCompare(b.country.name));
+}
+
+export function buildRegionEntries(state: Pick<AppState, "regionEntries"> & { activities?: ActivitySummary[] }): RegionEntry[] {
+  const activities = state.activities ?? [];
+  if (!state.activities) return state.regionEntries;
+  const grouped = new Map<string, ActivitySummary[]>();
+  for (const activity of activities) {
+    if (!activity.regionCode || activity.regionResolutionStatus !== "resolved") continue;
+    const regionActivities = grouped.get(activity.regionCode) ?? [];
+    regionActivities.push(activity);
+    grouped.set(activity.regionCode, regionActivities);
+  }
+  return [...grouped.entries()]
+    .map(([regionCode, regionActivities]) => {
+      const region = regionsByCode.get(regionCode);
+      if (!region) return null;
+      const sorted = [...regionActivities].sort((a, b) => Date.parse(a.startTime) - Date.parse(b.startTime));
+      return {
+        region,
+        firstVisitedAt: sorted[0].startTime,
+        lastVisitedAt: sorted.at(-1)!.startTime,
+        activityCount: sorted.length,
+        totalDistanceMeters: sum(sorted, "distanceMeters"),
+        totalMovingTimeSeconds: sum(sorted, "movingTimeSeconds"),
+        totalElevationGainMeters: sum(sorted, "elevationGainMeters"),
+        sportTypes: [...new Set(sorted.map((item) => item.sportType))].sort(),
+      } satisfies RegionEntry;
+    })
+    .filter((entry): entry is RegionEntry => Boolean(entry))
+    .sort((a, b) => a.region.name.localeCompare(b.region.name));
 }
 
 export function buildDashboardSummary(state: Pick<AppState, "countries"> & { activities?: ActivitySummary[]; routeStampEntries?: RouteStampEntry[]; dashboardSummary?: DashboardSummary }): DashboardSummary {
@@ -72,6 +103,7 @@ export function buildExport(state: AppState) {
       createdAt: state.user.createdAt,
     },
     routeStamp: buildRouteStampEntries(state),
+    regions: buildRegionEntries(state),
     activitySummaries: state.activities ?? state.recentActivities,
     privacySettings: state.privacySettings,
     connectionMetadata: {

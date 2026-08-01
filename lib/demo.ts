@@ -1,5 +1,5 @@
 import { countries } from "@/lib/countries";
-import { buildDashboardSummary, buildRouteStampEntries } from "@/lib/domain";
+import { buildDashboardSummary, buildRegionEntries, buildRouteStampEntries } from "@/lib/domain";
 import type { ActivitySummary, AppState, PrivacySettings } from "@/lib/types";
 
 const demoTimestamp = "2026-07-19T00:00:00.000Z";
@@ -39,6 +39,8 @@ function activity(
     id,
     provider: "strava",
     countryCode,
+    regionCode: countryCode === "US" ? "US-CA" : null,
+    regionResolutionStatus: countryCode === "US" ? "resolved" : "not_supported",
     sportType,
     name,
     startTime,
@@ -67,9 +69,14 @@ const demoActivities = [
 ];
 
 export function createDemoState(): AppState {
-  const activities = structuredClone(demoActivities);
+  const activities = structuredClone(demoActivities).map((item) => ({
+    ...item,
+    regionCode: item.countryCode === "US" ? "US-CA" : null,
+    regionResolutionStatus: item.countryCode === "US" ? "resolved" as const : "not_supported" as const,
+  }));
   const base = { activities, countries };
   const routeStampEntries = buildRouteStampEntries(base);
+  const regionEntries = buildRegionEntries({ activities, regionEntries: [] });
   const dashboardSummary = buildDashboardSummary(base);
   return {
     mode: "demo",
@@ -84,6 +91,7 @@ export function createDemoState(): AppState {
     activities,
     recentActivities: dashboardSummary.recentActivities,
     routeStampEntries,
+    regionEntries,
     dashboardSummary,
     countries,
     privacySettings: structuredClone(defaultPrivacySettings),

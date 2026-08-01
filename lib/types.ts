@@ -4,6 +4,8 @@ export type ActivitySummary = {
   id: string;
   provider: "strava";
   countryCode: string | null;
+  regionCode: string | null;
+  regionResolutionStatus: "resolved" | "unresolved" | "not_supported";
   sportType: string;
   name: string;
   startTime: string;
@@ -15,6 +17,8 @@ export type ActivitySummary = {
   geographicResolutionStatus: "resolved" | "unresolved";
 };
 
+export type RegionResolutionStatus = "resolved" | "unresolved" | "not_supported";
+
 export type Country = {
   code: string;
   name: string;
@@ -22,6 +26,13 @@ export type Country = {
   flag: string;
   x: number;
   y: number;
+};
+
+export type Region = {
+  code: string;
+  countryCode: string;
+  name: string;
+  shortCode: string;
 };
 
 export type PrivacySettings = {
@@ -72,6 +83,7 @@ export type AppState = {
   activities?: ActivitySummary[];
   recentActivities: ActivitySummary[];
   routeStampEntries: RouteStampEntry[];
+  regionEntries: RegionEntry[];
   dashboardSummary: DashboardSummary;
   countries: Country[];
   privacySettings: PrivacySettings;
@@ -94,6 +106,17 @@ export type RouteStampEntry = {
   totalElevationGainMeters: number;
   sportTypes: string[];
   stamp: { variant: string };
+};
+
+export type RegionEntry = {
+  region: Region;
+  firstVisitedAt: string;
+  lastVisitedAt: string;
+  activityCount: number;
+  totalDistanceMeters: number;
+  totalMovingTimeSeconds: number;
+  totalElevationGainMeters: number;
+  sportTypes: string[];
 };
 
 export type DashboardSummary = {

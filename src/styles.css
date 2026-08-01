@@ -496,6 +496,59 @@ select.chip {
   gap: 16px;
 }
 
+.region-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.region-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  opacity: 0.62;
+}
+
+.region-card.visited {
+  opacity: 1;
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+}
+
+.region-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.region-card h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+}
+
+.region-card small,
+.region-card p {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.region-card p {
+  margin: 12px 0 0;
+}
+
+.region-code {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--primary-strong);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .route-stamp-empty {
   margin-top: 18px;
 }
@@ -776,7 +829,8 @@ pre {
   }
 
   .metric-grid,
-  .stamp-grid {
+  .stamp-grid,
+  .region-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -786,7 +840,7 @@ pre {
     bottom: 0;
     left: 0;
     right: 0;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 4px;
     padding: 8px;
     background: var(--surface);
@@ -841,7 +895,8 @@ pre {
   }
 
   .metric-grid,
-  .stamp-grid {
+  .stamp-grid,
+  .region-grid {
     grid-template-columns: 1fr;
   }
 

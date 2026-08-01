@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDashboardSummary, buildExport, buildRouteStampEntries, filterAndSortRouteStampEntries } from "@/lib/domain";
+import { buildDashboardSummary, buildExport, buildRegionEntries, buildRouteStampEntries, filterAndSortRouteStampEntries } from "@/lib/domain";
 import { createDemoState } from "@/lib/demo";
 
 describe("routeStamp domain", () => {
@@ -44,6 +44,15 @@ describe("routeStamp domain", () => {
     expect(runs.every((entry) => entry.sportTypes.includes("Run"))).toBe(true);
     expect(runs.map((entry) => entry.country.code)).toEqual(["KR", "JP", "ES", "US"]);
     expect(latest.map((entry) => entry.country.code)).toEqual(["KR", "JP", "FR", "ES", "US"]);
+  });
+
+  it("aggregates first-level region entries separately from country stamps", () => {
+    const state = createDemoState();
+    const entries = buildRegionEntries(state);
+
+    expect(entries).toHaveLength(1);
+    expect(entries[0].region.code).toBe("US-CA");
+    expect(entries[0].activityCount).toBe(2);
   });
 
   it("exports no provider tokens or coordinates", () => {

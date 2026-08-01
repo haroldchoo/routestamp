@@ -1,13 +1,17 @@
 import type { StravaActivity } from "@/lib/strava";
 import type { ActivitySummary } from "@/lib/types";
 import { resolveCountryCode } from "@/lib/country-resolver";
+import { resolveUSRegion } from "@/lib/region-resolver";
 
 export function normalizeStravaActivity(activity: StravaActivity): ActivitySummary {
   const countryCode = resolveCountryCode(activity.start_latlng);
+  const region = resolveUSRegion(activity.start_latlng, countryCode);
   return {
     id: String(activity.id),
     provider: "strava",
     countryCode,
+    regionCode: region.code,
+    regionResolutionStatus: region.status,
     sportType: activity.sport_type || activity.type || "Other",
     name: activity.name || "Untitled activity",
     startTime: activity.start_date,

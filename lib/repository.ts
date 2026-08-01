@@ -4,10 +4,11 @@ import { normalizeStravaActivity } from "@/lib/activity-normalizer";
 import { countries, countriesByCode } from "@/lib/countries";
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
 import { defaultPrivacySettings } from "@/lib/demo";
-import { buildDashboardSummary, buildRouteStampEntries } from "@/lib/domain";
+import { buildDashboardSummary, buildRegionEntries, buildRouteStampEntries } from "@/lib/domain";
 import { serverEnv } from "@/lib/env";
+import { regionsByCode } from "@/lib/regions";
 import { supabaseAdmin } from "@/lib/supabase";
-import type { ActivityPage, ActivitySummary, AppState, DashboardSummary, RouteStampEntry, PrivacySettings, SyncJob } from "@/lib/types";
+import type { ActivityPage, ActivitySummary, AppState, DashboardSummary, RegionEntry, RouteStampEntry, PrivacySettings, SyncJob } from "@/lib/types";
 import type { StravaActivity, StravaTokenResponse } from "@/lib/strava";
 
 type Connection = {
@@ -243,7 +244,9 @@ export async function recordSyncPage(athleteId: string, jobId: string, activitie
       commute: normalized.flags.commute,
       trainer: normalized.flags.trainer,
       country_code: normalized.countryCode,
+      region_code: normalized.regionCode,
       geographic_resolution_status: normalized.geographicResolutionStatus,
+      region_resolution_status: normalized.regionResolutionStatus,
       last_seen_sync_id: jobId,
       fetched_at: new Date().toISOString(),
     };
@@ -329,12 +332,13 @@ export async function setProviderRateLimit(retryAfterSeconds: number, provider =
 
 export async function loadAppState(athleteId: string): Promise<AppState> {
   const db = supabaseAdmin();
-  const [{ data: athlete, error: athleteError }, { data: connection, error: connectionError }, { data: privacy, error: privacyError }, recentActivities, routeStampEntries, dashboardSummary, syncJob] = await Promise.all([
+  const [{ data: athlete, error: athleteError }, { data: connection, error: connectionError }, { data: privacy, error: privacyError }, recentActivities, routeStampEntries, regionEntries, dashboardSummary, syncJob] = await Promise.all([
     db.from("athletes").select("id,display_name,avatar_url,created_at").eq("id", athleteId).single(),
     db.from("strava_connections").select("athlete_id,revoked_at").eq("athlete_id", athleteId).maybeSingle(),
     db.from("privacy_settings").select("settings").eq("athlete_id", athleteId).maybeSingle(),
     readRecentActivities(athleteId),
     readRouteStampEntries(athleteId),
+    readRegionEntries(athleteId),
     readDashboardSummary(athleteId),
     latestSyncJob(athleteId),
   ]);
@@ -353,6 +357,7 @@ export async function loadAppState(athleteId: string): Promise<AppState> {
     },
     recentActivities,
     routeStampEntries,
+    regionEntries,
     dashboardSummary: { ...dashboardSummary, recentActivities, recentCountries: dashboardSummary.recentCountries },
     countries,
     privacySettings: sanitizePrivacySettings(privacy?.settings),
@@ -365,11 +370,13 @@ export async function loadExportState(athleteId: string): Promise<AppState> {
   const state = await loadAppState(athleteId);
   const activities = await readAllActivities(athleteId);
   const routeStampEntries = buildRouteStampEntries({ activities, countries });
+  const regionEntries = buildRegionEntries({ activities, regionEntries: [] });
   return {
     ...state,
     activities,
     recentActivities: activities.slice(0, recentActivityLimit),
     routeStampEntries,
+    regionEntries,
     dashboardSummary: buildDashboardSummary({ activities, countries, routeStampEntries }),
   };
 }
@@ -418,6 +425,7 @@ export async function deleteAthlete(athleteId: string) {
 async function refreshDerivedActivityData(athleteId: string) {
   const activities = await readAllActivities(athleteId);
   const routeStampEntries = buildRouteStampEntries({ activities, countries });
+  const regionEntries = buildRegionEntries({ activities, regionEntries: [] });
   const dashboardSummary = buildDashboardSummary({ activities, countries, routeStampEntries });
   const db = supabaseAdmin();
   const { error: deleteError } = await db.from("passport_country_summaries").delete().eq("athlete_id", athleteId);
@@ -437,6 +445,23 @@ async function refreshDerivedActivityData(athleteId: string) {
       updated_at: new Date().toISOString(),
     })));
     throwIfError(summaryError);
+  }
+  const { error: regionDeleteError } = await db.from("passport_region_summaries").delete().eq("athlete_id", athleteId);
+  throwIfError(regionDeleteError);
+  if (regionEntries.length) {
+    const { error: regionSummaryError } = await db.from("passport_region_summaries").insert(regionEntries.map((entry) => ({
+      athlete_id: athleteId,
+      region_code: entry.region.code,
+      first_visited_at: entry.firstVisitedAt,
+      last_visited_at: entry.lastVisitedAt,
+      activity_count: entry.activityCount,
+      total_distance_meters: entry.totalDistanceMeters,
+      total_moving_time_seconds: entry.totalMovingTimeSeconds,
+      total_elevation_gain_meters: entry.totalElevationGainMeters,
+      sport_types: entry.sportTypes,
+      updated_at: new Date().toISOString(),
+    })));
+    throwIfError(regionSummaryError);
   }
   const { error: totalsError } = await db.from("athlete_activity_totals").upsert({
     athlete_id: athleteId,
@@ -496,6 +521,29 @@ async function readRouteStampEntries(athleteId: string): Promise<RouteStampEntry
   }).filter((entry): entry is RouteStampEntry => Boolean(entry));
 }
 
+async function readRegionEntries(athleteId: string): Promise<RegionEntry[]> {
+  const { data, error } = await supabaseAdmin()
+    .from("passport_region_summaries")
+    .select("*")
+    .eq("athlete_id", athleteId)
+    .order("region_code", { ascending: true });
+  throwIfError(error);
+  return (data ?? []).map((row) => {
+    const region = regionsByCode.get(String(row.region_code));
+    if (!region) return null;
+    return {
+      region,
+      firstVisitedAt: String(row.first_visited_at),
+      lastVisitedAt: String(row.last_visited_at),
+      activityCount: Number(row.activity_count),
+      totalDistanceMeters: Number(row.total_distance_meters),
+      totalMovingTimeSeconds: Number(row.total_moving_time_seconds),
+      totalElevationGainMeters: Number(row.total_elevation_gain_meters),
+      sportTypes: Array.isArray(row.sport_types) ? row.sport_types.map(String).sort() : [],
+    } satisfies RegionEntry;
+  }).filter((entry): entry is RegionEntry => Boolean(entry));
+}
+
 async function readRecentActivities(athleteId: string) {
   const { items } = await listActivitiesPage(athleteId, null, recentActivityLimit);
   return items;
@@ -533,6 +581,12 @@ function mapActivity(row: Record<string, unknown>): ActivitySummary {
     id: String(row.provider_activity_id),
     provider: "strava",
     countryCode: row.country_code ? String(row.country_code).trim() : null,
+    regionCode: row.region_code ? String(row.region_code).trim() : null,
+    regionResolutionStatus: row.region_resolution_status === "resolved"
+      ? "resolved"
+      : row.region_resolution_status === "not_supported"
+        ? "not_supported"
+        : "unresolved",
     sportType: String(row.sport_type),
     name: String(row.name),
     startTime: String(row.start_time),

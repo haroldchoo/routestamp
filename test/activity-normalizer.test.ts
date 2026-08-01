@@ -19,6 +19,8 @@ describe("Strava activity normalization", () => {
     });
 
     expect(normalized.countryCode).toBe("KR");
+    expect(normalized.regionCode).toBeNull();
+    expect(normalized.regionResolutionStatus).toBe("not_supported");
     expect(normalized.geographicResolutionStatus).toBe("resolved");
     expect(normalized).not.toHaveProperty("start_latlng");
     expect(normalized).not.toHaveProperty("coordinates");
@@ -27,6 +29,8 @@ describe("Strava activity normalization", () => {
   it("retains coordinate-free activities as unresolved", () => {
     const normalized = normalizeStravaActivity({ id: 456, name: "Pool Swim", sport_type: "Swim", start_date: "2026-07-18T00:00:00Z" });
     expect(normalized.countryCode).toBeNull();
+    expect(normalized.regionCode).toBeNull();
+    expect(normalized.regionResolutionStatus).toBe("unresolved");
     expect(normalized.geographicResolutionStatus).toBe("unresolved");
   });
 });
