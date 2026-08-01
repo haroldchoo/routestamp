@@ -38,7 +38,7 @@ const mapCountries = countryFeatures
   })
   .filter((country) => country.path && country.code !== "AQ");
 
-export function WorldMap({ entries }: { entries: RouteStampEntry[] }) {
+export function WorldMap({ entries, onCountrySelect }: { entries: RouteStampEntry[]; onCountrySelect?: (countryCode: string) => void }) {
   const [selectedCode, setSelectedCode] = useState<string | null>(entries[0]?.country.code ?? null);
   const entriesByCode = useMemo(() => new Map(entries.map((entry) => [entry.country.code, entry])), [entries]);
   const selectedEntry = (selectedCode ? entriesByCode.get(selectedCode) : null) ?? entries[0] ?? null;
@@ -56,6 +56,15 @@ export function WorldMap({ entries }: { entries: RouteStampEntry[] }) {
               ? `${entry.country.name}: ${entry.activityCount} activities, ${formatDistance(entry.totalDistanceMeters)}`
               : country.name;
 
+            const selectCountry = () => {
+              if (!entry) return;
+              if (onCountrySelect) {
+                onCountrySelect(entry.country.code);
+                return;
+              }
+              setSelectedCode(entry.country.code);
+            };
+
             return (
               <path
                 key={`${country.code ?? "unknown"}-${country.name}`}
@@ -65,11 +74,11 @@ export function WorldMap({ entries }: { entries: RouteStampEntry[] }) {
                 tabIndex={entry ? 0 : undefined}
                 aria-label={entry ? label : undefined}
                 aria-hidden={entry ? undefined : true}
-                onClick={entry ? () => setSelectedCode(entry.country.code) : undefined}
+                onClick={entry ? selectCountry : undefined}
                 onKeyDown={entry ? (event) => {
                   if (event.key === "Enter" || event.key === " ") {
                     event.preventDefault();
-                    setSelectedCode(entry.country.code);
+                    selectCountry();
                   }
                 } : undefined}
               >

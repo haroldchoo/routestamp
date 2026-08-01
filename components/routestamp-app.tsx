@@ -10,13 +10,14 @@ import type { RouteStampSort } from "@/lib/domain";
 import { createDemoState } from "@/lib/demo";
 import type { ActivityPage, ActivitySummary, AppState, Country, RegionEntry, RouteStampEntry, PrivacySettings, SyncJob } from "@/lib/types";
 
-type RouteName = "dashboard" | "routestamp" | "regions" | "map" | "activities" | "settings" | "settings/privacy";
+type RouteName = "dashboard" | "routestamp" | "regions" | "map" | "country" | "activities" | "settings" | "settings/privacy";
 
-const routes = new Set<RouteName>(["dashboard", "routestamp", "regions", "map", "activities", "settings", "settings/privacy"]);
+const routes = new Set<RouteName>(["dashboard", "routestamp", "regions", "map", "country", "activities", "settings", "settings/privacy"]);
 
 export function RouteStampApp() {
   const [state, setState] = useState<AppState>(() => createDemoState());
   const [route, setRoute] = useState<RouteName>("dashboard");
+  const [countryCode, setCountryCode] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -33,7 +34,14 @@ export function RouteStampApp() {
 
   useEffect(() => {
     const readRoute = () => {
-      const candidate = window.location.hash.replace("#", "") as RouteName;
+      const hash = window.location.hash.slice(1);
+      if (hash.startsWith("country/")) {
+        setCountryCode(hash.slice("country/".length).toUpperCase());
+        setRoute("country");
+        return;
+      }
+      setCountryCode(null);
+      const candidate = hash as RouteName;
       setRoute(routes.has(candidate) ? candidate : "dashboard");
     };
     readRoute();
@@ -172,6 +180,7 @@ export function RouteStampApp() {
           {route === "routestamp" && <RouteStamp state={state} />}
           {route === "regions" && <Regions state={state} />}
           {route === "map" && <MapView state={state} />}
+          {route === "country" && <CountryDetail state={state} countryCode={countryCode} />}
           {route === "activities" && <Activities state={state} />}
           {route === "settings/privacy" && <Privacy state={state} onChange={updatePrivacy} />}
           {route === "settings" && (
@@ -373,8 +382,48 @@ function MapView({ state }: { state: AppState }) {
     <>
       <PageTitle title="Map" copy="A generalized country map for exploration. Exact activity coordinates are not retained." />
       <section className="map-layout">
-        <WorldMap entries={entries} />
+        <WorldMap entries={entries} onCountrySelect={(code) => { window.location.hash = `country/${code}`; }} />
         <div className="map-panel"><h2>Visited countries</h2><p>Country summaries are derived server-side and contain no activity coordinates.</p><div className="country-list compact">{entries.map((entry) => <CountryRow key={entry.country.code} entry={entry} />)}</div></div>
+      </section>
+    </>
+  );
+}
+
+function CountryDetail({ state, countryCode }: { state: AppState; countryCode: string | null }) {
+  const country = state.countries.find((item) => item.code === countryCode);
+  const countryEntry = buildRouteStampEntries(state).find((entry) => entry.country.code === countryCode);
+  if (!country) {
+    return <><PageTitle title="Country not found" copy="That country is not available in this passport." /><a className="text-link" href="#map">← Back to Map</a></>;
+  }
+
+  if (country.code !== "US") {
+    return (
+      <>
+        <a className="text-link" href="#map">← Back to Map</a>
+        <PageTitle title={`${country.flag} ${country.name}`} copy="Country-level RouteStamp details are available here. Region tracking is currently available for the United States." />
+        {countryEntry ? <section className="metric-grid" aria-label={`${country.name} summary`}>
+          <Metric label="Activities" value={countryEntry.activityCount} detail="Activities in this country" />
+          <Metric label="Distance" value={formatDistance(countryEntry.totalDistanceMeters)} detail="Total distance" />
+          <Metric label="Last visit" value={formatDate(countryEntry.lastVisitedAt)} detail="Most recent activity" />
+          <Metric label="Sports" value={countryEntry.sportTypes.length} detail="Sport types" />
+        </section> : <section className="empty-state"><h2>No country stamp yet</h2><p>This country has not been unlocked by an imported activity.</p></section>}
+      </>
+    );
+  }
+
+  const visited = new Map(state.regionEntries.map((entry) => [entry.region.code, entry]));
+  return (
+    <>
+      <a className="text-link" href="#map">← Back to Map</a>
+      <PageTitle title="🇺🇸 United States" copy="State-level activity coverage from your US RouteStamp visits." />
+      <section className="metric-grid" aria-label="United States summary">
+        <Metric label="States visited" value={state.regionEntries.length} detail={`of ${usRegions.length} supported regions`} />
+        <Metric label="Activities" value={countryEntry?.activityCount ?? 0} detail="Activities in the United States" />
+        <Metric label="Distance" value={formatDistance(countryEntry?.totalDistanceMeters ?? 0)} detail="Total distance" />
+        <Metric label="Last visit" value={countryEntry ? formatDate(countryEntry.lastVisitedAt) : "—"} detail="Most recent US activity" />
+      </section>
+      <section className="region-grid" aria-label="United States states and district">
+        {usRegions.map((region) => <RegionCard key={region.code} entry={visited.get(region.code)} regionName={region.name} shortCode={region.shortCode} />)}
       </section>
     </>
   );
