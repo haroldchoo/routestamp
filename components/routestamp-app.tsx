@@ -8,9 +8,9 @@ import type { RouteStampSort } from "@/lib/domain";
 import { createDemoState } from "@/lib/demo";
 import type { ActivityPage, ActivitySummary, AppState, Country, RouteStampEntry, PrivacySettings, SyncJob } from "@/lib/types";
 
-type RouteName = "dashboard" | "routestamp" | "map" | "activities" | "privacy" | "settings";
+type RouteName = "dashboard" | "routestamp" | "map" | "activities" | "settings" | "settings/privacy";
 
-const routes = new Set<RouteName>(["dashboard", "routestamp", "map", "activities", "privacy", "settings"]);
+const routes = new Set<RouteName>(["dashboard", "routestamp", "map", "activities", "settings", "settings/privacy"]);
 
 export function RouteStampApp() {
   const [state, setState] = useState<AppState>(() => createDemoState());
@@ -170,7 +170,7 @@ export function RouteStampApp() {
           {route === "routestamp" && <RouteStamp state={state} />}
           {route === "map" && <MapView state={state} />}
           {route === "activities" && <Activities state={state} />}
-          {route === "privacy" && <Privacy state={state} onChange={updatePrivacy} />}
+          {route === "settings/privacy" && <Privacy state={state} onChange={updatePrivacy} />}
           {route === "settings" && (
             <Settings
               state={state}
@@ -187,7 +187,7 @@ export function RouteStampApp() {
           <a href="#routestamp" aria-current={route === "routestamp" ? "page" : undefined}>RouteStamp</a>
           <a href="#map" aria-current={route === "map" ? "page" : undefined}>Map</a>
           <a href="#activities" aria-current={route === "activities" ? "page" : undefined}>Log</a>
-          <a href="#privacy" aria-current={route === "privacy" ? "page" : undefined}>Privacy</a>
+          <a href="#settings" aria-current={route === "settings" || route === "settings/privacy" ? "page" : undefined}>Settings</a>
         </nav>
       </div>
       <div className="toast-region" aria-live="polite" aria-atomic="true">
@@ -231,7 +231,7 @@ function Dashboard({ state, busy, onSync, onJoinWithInvite }: { state: AppState;
                 <button className="button secondary" type="button" onClick={onJoinWithInvite}>Join with Invite</button>
               </>
             )}
-            <a className="button secondary" href="#privacy">Privacy Center</a>
+            <a className="button secondary" href="#settings/privacy">Privacy Settings</a>
           </div>
           <SyncProgress job={state.syncJob} />
         </div>
@@ -261,7 +261,7 @@ function Dashboard({ state, busy, onSync, onJoinWithInvite }: { state: AppState;
       </section>
       <section className="privacy-band">
         <div><h2>Privacy is part of the product.</h2><p>Real activity data is available only inside your signed-in beta. Precise coordinates are never stored.</p></div>
-        <a className="button outline" href="#privacy">Open Privacy Center</a>
+        <a className="button outline" href="#settings/privacy">Open Privacy Settings</a>
       </section>
     </>
   );
@@ -403,10 +403,9 @@ function Privacy({ state, onChange }: { state: AppState; onChange: (settings: Pr
   };
   return (
     <>
-      <PageTitle title="Privacy & sharing" copy="Choose which profile and RouteStamp details are included when you share this page." />
+      <PageTitle title="Privacy Settings" copy="Choose which profile and RouteStamp details are included when you share this page." />
       <section className="settings-grid">
         <div className="settings-panel"><h2>Shared RouteStamp fields</h2>{Object.entries(settings.visibility).map(([key, value]) => <Toggle key={key} label={privacyLabel(key)} checked={value} disabled={!state.authenticated} onChange={(checked) => changeVisibility(key as keyof PrivacySettings["visibility"], checked)} />)}</div>
-        <div className="settings-panel"><h2>How sharing works</h2><p>RouteStamp is the share surface. Use the Share button on the RouteStamp page to send its link, just like an AMEX Passport page.</p><a className="button secondary" href="#routestamp">Open RouteStamp</a></div>
       </section>
     </>
   );
@@ -419,6 +418,7 @@ function Settings({ state, busy, onSync, onDisconnect, onDelete }: { state: AppS
       <section className="settings-grid">
         <div className="settings-panel"><h2>Connected app</h2><p>{state.providerConnected ? "Strava connection is active." : "Reconnect Strava without an invite code."}</p><button className="button primary" type="button" onClick={onSync} disabled={busy}>{state.providerConnected ? "Manual Sync" : state.authenticated ? "Reconnect Strava" : "Sign In with Strava"}</button><SyncProgress job={state.syncJob} /></div>
         <FriendInvitePanel authenticated={state.authenticated} />
+        <div className="settings-panel"><h2>Privacy Settings</h2><p>Choose which profile and RouteStamp details are included when you share your page.</p><a className="button secondary" href="#settings/privacy">Open Privacy Settings</a></div>
         <div className="settings-panel"><h2>Export</h2><p>Download profile, RouteStamp, summaries, privacy settings, and safe connection metadata.</p><a className="button secondary" href={state.authenticated ? "/api/export" : undefined} aria-disabled={!state.authenticated}>Export Data</a></div>
         <div className="settings-panel danger"><h2>Disconnect Strava</h2><p>Revoke provider access while retaining imported summaries.</p><button className="button destructive" type="button" disabled={!state.providerConnected || busy} onClick={onDisconnect}>Disconnect</button></div>
         <div className="settings-panel danger"><h2>Delete account</h2><p>Revoke access and permanently delete all private-beta records.</p><button className="button destructive" type="button" disabled={!state.authenticated || busy} onClick={onDelete}>Delete Account</button></div>
@@ -471,7 +471,7 @@ function Nav({ className, route }: { className: string; route: RouteName }) {
 }
 
 function NavLinks({ route }: { route: RouteName }) {
-  const items: Array<[RouteName, string]> = [["dashboard", "Dashboard"], ["routestamp", "RouteStamp"], ["map", "Map"], ["activities", "Activities"], ["privacy", "Privacy & sharing"], ["settings", "Settings"]];
+  const items: Array<[RouteName, string]> = [["dashboard", "Dashboard"], ["routestamp", "RouteStamp"], ["map", "Map"], ["activities", "Activities"], ["settings", "Settings"]];
   return <>{items.map(([key, label]) => <a key={key} href={`#${key}`} aria-current={route === key ? "page" : undefined}>{label}</a>)}</>;
 }
 
