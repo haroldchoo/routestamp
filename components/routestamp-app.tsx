@@ -165,12 +165,6 @@ export function RouteStampApp() {
           </div>
         </header>
 
-        <aside className="sidebar" aria-label="RouteStamp summary">
-          <nav className="side-nav" aria-label="Sections">
-            <NavLinks route={route} />
-          </nav>
-        </aside>
-
         <main id="main" className="main" tabIndex={-1}>
           {route === "dashboard" && <Dashboard state={state} busy={busy} onSync={sync} onJoinWithInvite={joinWithInvite} />}
           {route === "routestamp" && <RouteStamp state={state} />}

@@ -81,7 +81,7 @@ button {
 .app-shell {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 72px 1fr;
 }
 
@@ -181,7 +181,6 @@ button {
 }
 
 .desktop-nav a,
-.side-nav a,
 .bottom-nav a {
   text-decoration: none;
   color: var(--muted);
@@ -194,8 +193,6 @@ button {
 
 .desktop-nav a:hover,
 .desktop-nav a[aria-current],
-.side-nav a:hover,
-.side-nav a[aria-current],
 .bottom-nav a[aria-current] {
   color: var(--text);
   background: var(--surface-2);
@@ -210,25 +207,11 @@ button {
   color: var(--text);
 }
 
-.sidebar {
-  border-right: 1px solid var(--border);
-  padding: 24px;
-  background: var(--surface);
-}
-
-.side-nav {
-  display: grid;
-  gap: 6px;
-}
-
-.side-nav a {
-  padding: 12px;
-}
-
 .main {
   padding: 32px;
   max-width: 1440px;
   width: 100%;
+  margin: 0 auto;
 }
 
 .hero {
@@ -764,7 +747,6 @@ pre {
     grid-template-columns: 1fr;
   }
 
-  .sidebar,
   .desktop-nav {
     display: none;
   }
