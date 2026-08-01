@@ -231,7 +231,7 @@ function Dashboard({ state, busy, onSync, onJoinWithInvite }: { state: AppState;
               </button>
             ) : (
               <>
-                <button className="button primary" type="button" onClick={onSync}>Sign In with Strava</button>
+                <a className="button primary" href="/api/auth/strava">Sign In with Strava</a>
                 <button className="button secondary" type="button" onClick={onJoinWithInvite}>Join with Invite</button>
               </>
             )}
@@ -443,7 +443,7 @@ function Settings({ state, busy, onSync, onDisconnect, onDelete }: { state: AppS
     <>
       <PageTitle title="Settings" copy="Manage the private connection, export, disconnect, and account deletion controls." />
       <section className="settings-grid">
-        <div className="settings-panel"><h2>Connected app</h2><p>{state.providerConnected ? "Strava connection is active." : "Reconnect Strava without an invite code."}</p><button className="button primary" type="button" onClick={onSync} disabled={busy}>{state.providerConnected ? "Manual Sync" : state.authenticated ? "Reconnect Strava" : "Sign In with Strava"}</button><SyncProgress job={state.syncJob} /></div>
+        <div className="settings-panel"><h2>Connected app</h2><p>{state.providerConnected ? "Strava connection is active." : state.authenticated ? "Reconnect Strava without an invite code." : "Connect Strava to import your activities."}</p>{state.authenticated ? <button className="button primary" type="button" onClick={onSync} disabled={busy}>{state.providerConnected ? "Manual Sync" : "Reconnect Strava"}</button> : <a className="button primary" href="/api/auth/strava">Sign In with Strava</a>}<SyncProgress job={state.syncJob} /></div>
         <FriendInvitePanel authenticated={state.authenticated} />
         <div className="settings-panel"><h2>Privacy Settings</h2><p>Choose which profile and RouteStamp details are included when you share your page.</p><a className="button secondary" href="#settings/privacy">Open Privacy Settings</a></div>
         <div className="settings-panel"><h2>Export</h2><p>Download profile, RouteStamp, summaries, privacy settings, and safe connection metadata.</p><a className="button secondary" href={state.authenticated ? "/api/export" : undefined} aria-disabled={!state.authenticated}>Export Data</a></div>
