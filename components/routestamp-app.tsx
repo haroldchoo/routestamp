@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIcon } from "@/components/activity-icon";
+import { PassportLogo } from "@/components/passport-logo";
 import { WorldMap } from "@/components/world-map";
 import { buildDashboardSummary, buildRouteStampEntries, filterAndSortRouteStampEntries, formatDate, formatDistance, formatDuration, sportLabel } from "@/lib/domain";
 import type { RouteStampSort } from "@/lib/domain";
@@ -149,8 +150,8 @@ export function RouteStampApp() {
       <div className="app-shell">
         <header className="topbar">
           <a className="brand" href="#dashboard" aria-label="RouteStamp dashboard">
-            <span className="brand-mark" aria-hidden="true">SP</span>
-            <span><strong>RouteStamp</strong><small>Private athletic travel journal</small></span>
+            <PassportLogo />
+            <span><strong>RouteStamp</strong><small>A passport of your Strava activities</small></span>
           </a>
           <Nav className="desktop-nav" route={route} />
           <div className="topbar-actions">
@@ -235,11 +236,18 @@ function Dashboard({ state, busy, onSync, onJoinWithInvite }: { state: AppState;
           </div>
           <SyncProgress job={state.syncJob} />
         </div>
-        <div className="route-stamp-preview" aria-hidden="true">
-          <span>Republic of Miles</span>
-          <strong>ROUTESTAMP</strong>
+        <div className="route-stamp-preview" aria-label="Passport snapshot of your current RouteStamp country stamps">
+          <div>
+            <span>Republic of Miles</span>
+            <strong>ROUTESTAMP</strong>
+          </div>
           <div className="preview-stamps">
-            {(summary.routeStampEntries.length ? summary.routeStampEntries.slice(0, 4).map((entry) => entry.country.code) : ["KR", "US", "FR", "JP"]).map((code) => <i key={code}>{code}</i>)}
+            {summary.recentCountries.length ? summary.recentCountries.slice(0, 4).map((entry) => (
+              <div className="preview-stamp" key={entry.country.code}>
+                <span className="preview-stamp-flag" aria-hidden="true">{entry.country.flag}</span>
+                <small>{entry.country.name}</small>
+              </div>
+            )) : <span className="preview-empty">No stamps yet</span>}
           </div>
         </div>
       </section>
@@ -247,7 +255,7 @@ function Dashboard({ state, busy, onSync, onJoinWithInvite }: { state: AppState;
         <Metric label="Countries" value={summary.countriesVisited} detail="Unlocked destinations" />
         <Metric label="Continents" value={summary.continentsVisited} detail="Across your activities" />
         <Metric label="Activities" value={summary.activityCount} detail={`${summary.unresolvedActivityCount} awaiting a country`} />
-        <Metric label="Distance" value={formatDistance(summary.totalDistanceMeters)} detail="No GPS stored" />
+        <Metric label="Distance" value={formatDistance(summary.totalDistanceMeters)} detail="Total distance" />
       </section>
       <section className="two-column">
         <div>
@@ -258,10 +266,6 @@ function Dashboard({ state, busy, onSync, onJoinWithInvite }: { state: AppState;
           <SectionHeading title="Recent activities" href="#activities" label="View all" />
           <div className="activity-list">{state.recentActivities.map((activity) => <ActivityRow key={activity.id} activity={activity} countries={state.countries} />)}</div>
         </div>
-      </section>
-      <section className="privacy-band">
-        <div><h2>Privacy is part of the product.</h2><p>Real activity data is available only inside your signed-in beta. Precise coordinates are never stored.</p></div>
-        <a className="button outline" href="#settings/privacy">Open Privacy Settings</a>
       </section>
     </>
   );

@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { PassportLogo } from "@/components/passport-logo";
 
 type InviteResponse = {
   code: string;
@@ -60,7 +61,7 @@ export function AdminInvitePanel() {
     <main className="admin-page">
       <section className="admin-panel">
         <Link className="brand admin-brand" href="/" aria-label="RouteStamp dashboard">
-          <span className="brand-mark" aria-hidden="true">SP</span>
+          <PassportLogo />
           <span><strong>RouteStamp</strong><small>Invite admin</small></span>
         </Link>
 

@@ -107,7 +107,14 @@ button {
   min-width: 240px;
 }
 
-.brand-mark,
+.brand-mark {
+  display: block;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+}
+
 .avatar {
   display: grid;
   place-items: center;
@@ -320,16 +327,32 @@ button {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
+  align-items: start;
 }
 
-.preview-stamps i {
+.preview-stamp {
   display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  border: 2px solid rgba(255, 255, 255, 0.72);
-  border-radius: 50%;
-  font-style: normal;
-  font-weight: 800;
+  gap: 6px;
+  min-width: 0;
+  text-align: center;
+}
+
+.preview-stamp-flag {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.preview-stamp small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.preview-empty {
+  grid-column: 1 / -1;
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .metric-grid {
@@ -345,8 +368,7 @@ button {
 .settings-panel,
 .empty-state,
 .map-panel,
-.table-wrap,
-.privacy-band {
+.table-wrap {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -435,15 +457,6 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-}
-
-.privacy-band {
-  margin-top: 24px;
-  padding: 24px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 18px;
 }
 
 .page-title {
@@ -830,11 +843,6 @@ pre {
   .metric-grid,
   .stamp-grid {
     grid-template-columns: 1fr;
-  }
-
-  .privacy-band {
-    align-items: flex-start;
-    flex-direction: column;
   }
 
   .row-card {
