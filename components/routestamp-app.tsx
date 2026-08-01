@@ -238,8 +238,7 @@ function Dashboard({ state, busy, onSync, onJoinWithInvite }: { state: AppState;
         </div>
         <div className="route-stamp-preview" aria-label="Passport snapshot of your current RouteStamp country stamps">
           <div>
-            <span>Republic of Miles</span>
-            <strong>ROUTESTAMP</strong>
+            <strong>Passport</strong>
           </div>
           <div className="preview-stamps">
             {summary.recentCountries.length ? summary.recentCountries.slice(0, 4).map((entry) => (

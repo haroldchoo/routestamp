@@ -112,7 +112,7 @@ button {
   flex: 0 0 auto;
   width: 42px;
   height: 42px;
-  object-fit: contain;
+  color: currentColor;
 }
 
 .avatar {
@@ -232,7 +232,7 @@ button {
   color: white;
   background:
     linear-gradient(rgba(8, 27, 48, 0.52), rgba(8, 27, 48, 0.62)),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Crect fill='%233a7f92' width='1200' height='600'/%3E%3Cpath d='M0 390 C180 300 270 420 450 330 S780 230 1200 310 L1200 600 L0 600Z' fill='%2312455b'/%3E%3Cpath d='M0 460 C190 400 300 500 520 420 S820 350 1200 410 L1200 600 L0 600Z' fill='%230a2838'/%3E%3Ccircle cx='980' cy='110' r='56' fill='%23f7b267'/%3E%3C/svg%3E");
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 600'%3E%3Crect fill='%233a7f92' width='1200' height='600'/%3E%3Cpath d='M0 390 C180 300 270 420 450 330 S780 230 1200 310 L1200 600 L0 600Z' fill='%2312455b'/%3E%3Cpath d='M0 460 C190 400 300 500 520 420 S820 350 1200 410 L1200 600 L0 600Z' fill='%230a2838'/%3E%3C/svg%3E");
   background-size: cover;
   overflow: hidden;
 }
@@ -311,12 +311,12 @@ button {
 .route-stamp-preview {
   align-self: end;
   min-height: 260px;
-  border: 1px solid rgba(255, 255, 255, 0.34);
+  border: 1px solid color-mix(in srgb, var(--primary-strong) 70%, white);
   border-radius: var(--radius);
   padding: 24px;
   display: grid;
   align-content: space-between;
-  background: rgba(255, 255, 255, 0.14);
+  background: var(--primary-strong);
 }
 
 .route-stamp-preview strong {
